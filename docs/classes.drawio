@@ -1,59 +1,89 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36" version="28.0.6">
   <diagram name="Page-1" id="1DG3QnNdaweKQwgkvfJX">
-    <mxGraphModel dx="938" dy="523" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1983" dy="633" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="0V2Y0afaQfNCtUcNKaYH-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="0V2Y0afaQfNCtUcNKaYH-1" target="0V2Y0afaQfNCtUcNKaYH-2">
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-42" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="0V2Y0afaQfNCtUcNKaYH-1" target="0V2Y0afaQfNCtUcNKaYH-35">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="0V2Y0afaQfNCtUcNKaYH-1" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;Pot&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot; style=&quot;border-style:solid;&quot;&gt;&amp;nbsp;- id&lt;div&gt;&amp;nbsp;-&amp;nbsp;threshold&lt;/div&gt;&lt;div&gt;&amp;nbsp;- size&lt;/div&gt;&lt;div&gt;&amp;nbsp;- watering_mode&lt;/div&gt;&lt;div&gt;&amp;nbsp;- shot_freq&lt;/div&gt;&lt;div&gt;&amp;nbsp;- insect_freq&lt;/div&gt;&lt;div&gt;&amp;nbsp;- plant_name&lt;/div&gt;&lt;div&gt;&lt;div style=&quot;height:2px;&quot;&gt;&lt;/div&gt;&lt;hr size=&quot;1&quot; style=&quot;border-style:solid;&quot;&gt;&lt;div style=&quot;height:2px;&quot;&gt;&lt;/div&gt;&lt;/div&gt;" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="310" y="200" width="170" height="160" as="geometry" />
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-51" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="0V2Y0afaQfNCtUcNKaYH-1" target="0V2Y0afaQfNCtUcNKaYH-50">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="0V2Y0afaQfNCtUcNKaYH-2" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;PotPhoto&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot; style=&quot;border-style:solid;&quot;&gt;&amp;nbsp;- timestamp&lt;div&gt;&amp;nbsp;- type (timelaspe, insect,&amp;nbsp; &amp;nbsp; flower)&lt;br&gt;&lt;div&gt;&lt;div style=&quot;height:2px;&quot;&gt;&lt;/div&gt;&lt;hr size=&quot;1&quot; style=&quot;border-style:solid;&quot;&gt;&lt;div style=&quot;height:2px;&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="40" y="230" width="140" height="100" as="geometry" />
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-54" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="0V2Y0afaQfNCtUcNKaYH-1" target="0V2Y0afaQfNCtUcNKaYH-2">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="0V2Y0afaQfNCtUcNKaYH-3" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;FlowerSighting&lt;/p&gt;&lt;hr size=&quot;1&quot; style=&quot;border-style:solid;&quot;&gt;&lt;div&gt;&amp;nbsp;&lt;/div&gt;&lt;div&gt;&lt;div style=&quot;height:2px;&quot;&gt;&lt;/div&gt;&lt;hr size=&quot;1&quot; style=&quot;border-style:solid;&quot;&gt;&lt;div style=&quot;height:2px;&quot;&gt;&lt;/div&gt;&lt;/div&gt;" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="800" y="380" width="140" height="90" as="geometry" />
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-1" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;Pot&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot; style=&quot;border-style:solid;&quot;&gt;&amp;nbsp;- id&lt;div&gt;&amp;nbsp;- size&lt;/div&gt;&lt;div&gt;&amp;nbsp;- plant_name&lt;/div&gt;&lt;div&gt;&lt;div style=&quot;height:2px;&quot;&gt;&lt;/div&gt;&lt;hr size=&quot;1&quot; style=&quot;border-style:solid;&quot;&gt;&lt;div style=&quot;height:2px;&quot;&gt;&lt;/div&gt;&lt;/div&gt;" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="240" y="200" width="190" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-2" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;&lt;i&gt;Photo&lt;/i&gt;&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot; style=&quot;border-style:solid;&quot;&gt;&amp;nbsp;- timestamp&lt;div&gt;&amp;nbsp;- img_path&lt;/div&gt;&lt;div&gt;&amp;nbsp;- type (timelaspe, insect or flower)&lt;/div&gt;&lt;div&gt;&lt;hr&gt;&lt;div&gt;&lt;br&gt;&lt;div&gt;&lt;hr size=&quot;1&quot; style=&quot;border-style:solid;&quot;&gt;&lt;div style=&quot;height:2px;&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="640" y="205" width="140" height="125" as="geometry" />
         </mxCell>
         <mxCell id="0V2Y0afaQfNCtUcNKaYH-4" value="tabella delle piante assente, si fa affidamento a database esterni tramite api se servono dati delle piante, nel db del progetto viene memorizzato solo il nome di specie nella tabella pot, per recuperare dati necessari in caso via API.&lt;div&gt;Stesso discorso per gli insetti&lt;/div&gt;" style="shape=callout;whiteSpace=wrap;html=1;perimeter=calloutPerimeter;" vertex="1" parent="1">
-          <mxGeometry x="60" y="420" width="300" height="130" as="geometry" />
+          <mxGeometry x="-200" y="470" width="300" height="130" as="geometry" />
         </mxCell>
-        <mxCell id="0V2Y0afaQfNCtUcNKaYH-5" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;InsectSighting&lt;/p&gt;&lt;hr size=&quot;1&quot; style=&quot;border-style:solid;&quot;&gt;&lt;div&gt;&amp;nbsp;- insect_species&lt;/div&gt;&lt;div&gt;&lt;div style=&quot;height:2px;&quot;&gt;&lt;/div&gt;&lt;hr size=&quot;1&quot; style=&quot;border-style:solid;&quot;&gt;&lt;div style=&quot;height:2px;&quot;&gt;&lt;/div&gt;&lt;/div&gt;" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="640" y="380" width="140" height="90" as="geometry" />
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-35" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;Configuration&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot; style=&quot;border-style:solid;&quot;&gt;&amp;nbsp;&amp;nbsp;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;-&amp;nbsp;threshold&lt;/span&gt;&lt;div&gt;&amp;nbsp;- watering_mode&lt;/div&gt;&lt;div&gt;&amp;nbsp;- shot_freq&lt;/div&gt;&lt;div&gt;&amp;nbsp;- insect_freq&lt;/div&gt;&lt;div&gt;&lt;hr size=&quot;1&quot; style=&quot;border-style:solid;&quot;&gt;&lt;div style=&quot;height:2px;&quot;&gt;&lt;/div&gt;&lt;/div&gt;" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="-80" y="200" width="170" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="0V2Y0afaQfNCtUcNKaYH-7" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;i&gt;&amp;lt;&amp;lt;Interface&amp;gt;&amp;gt;&lt;/i&gt;&lt;br&gt;&lt;b&gt;Sighting&lt;/b&gt;&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;&lt;br&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot; style=&quot;border-style:solid;&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;&lt;br&gt;&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="700" y="210" width="190" height="100" as="geometry" />
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-37" value="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="210" y="245" width="30" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="0V2Y0afaQfNCtUcNKaYH-9" value="" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.413;entryY=1.018;entryDx=0;entryDy=0;entryPerimeter=0;dashed=1;" edge="1" parent="1" source="0V2Y0afaQfNCtUcNKaYH-5" target="0V2Y0afaQfNCtUcNKaYH-7">
-          <mxGeometry width="160" relative="1" as="geometry">
-            <mxPoint x="410" y="270" as="sourcePoint" />
-            <mxPoint x="570" y="270" as="targetPoint" />
-          </mxGeometry>
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-38" value="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="90" y="245" width="30" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="0V2Y0afaQfNCtUcNKaYH-10" value="" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;entryX=0.704;entryY=1.004;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.429;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;dashed=1;" edge="1" parent="1" source="0V2Y0afaQfNCtUcNKaYH-3" target="0V2Y0afaQfNCtUcNKaYH-7">
-          <mxGeometry width="160" relative="1" as="geometry">
-            <mxPoint x="860" y="340" as="sourcePoint" />
-            <mxPoint x="828" y="270" as="targetPoint" />
-          </mxGeometry>
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-50" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;Measurement&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot; style=&quot;border-style:solid;&quot;&gt;&lt;div style=&quot;height:2px;&quot;&gt;&lt;/div&gt;&amp;nbsp;- timestamp&lt;div&gt;- soil_moisture&lt;br&gt;&lt;div style=&quot;height:2px;&quot;&gt;&lt;hr&gt;&lt;/div&gt;&lt;/div&gt;" style="verticalAlign=top;align=left;overflow=fill;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="255" y="420" width="140" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="0V2Y0afaQfNCtUcNKaYH-19" value="*" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="170" y="250" width="30" height="30" as="geometry" />
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-52" value="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="320" y="330" width="30" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="0V2Y0afaQfNCtUcNKaYH-20" value="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="280" y="250" width="30" height="30" as="geometry" />
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-53" value="*" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="335" y="388" width="30" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="0V2Y0afaQfNCtUcNKaYH-21" value="has" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="230" y="245" width="40" height="30" as="geometry" />
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-55" value="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="435" y="228" width="30" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="0V2Y0afaQfNCtUcNKaYH-24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.007;entryY=0.698;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="0V2Y0afaQfNCtUcNKaYH-1" target="0V2Y0afaQfNCtUcNKaYH-7">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-56" value="*" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="605" y="218" width="30" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="0V2Y0afaQfNCtUcNKaYH-25" value="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="485" y="248" width="30" height="30" as="geometry" />
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-57" value="DataManager" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="255" y="1000" width="160" height="86" as="geometry" />
         </mxCell>
-        <mxCell id="0V2Y0afaQfNCtUcNKaYH-26" value="*" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="665" y="248" width="30" height="30" as="geometry" />
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-58" value="+ field: type" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="0V2Y0afaQfNCtUcNKaYH-57">
+          <mxGeometry y="26" width="160" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-59" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;strokeColor=inherit;" vertex="1" parent="0V2Y0afaQfNCtUcNKaYH-57">
+          <mxGeometry y="52" width="160" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-60" value="+ method(type): type" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="0V2Y0afaQfNCtUcNKaYH-57">
+          <mxGeometry y="60" width="160" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-61" value="IrrigationManager" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="160" y="790" width="160" height="86" as="geometry" />
+        </mxCell>
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-62" value="+ field: type" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="0V2Y0afaQfNCtUcNKaYH-61">
+          <mxGeometry y="26" width="160" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-63" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;strokeColor=inherit;" vertex="1" parent="0V2Y0afaQfNCtUcNKaYH-61">
+          <mxGeometry y="52" width="160" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-64" value="+ method(type): type" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="0V2Y0afaQfNCtUcNKaYH-61">
+          <mxGeometry y="60" width="160" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-65" value="PhotoANalyzer" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="410" y="790" width="250" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-66" value="+ field: type" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="0V2Y0afaQfNCtUcNKaYH-65">
+          <mxGeometry y="26" width="250" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-67" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;strokeColor=inherit;" vertex="1" parent="0V2Y0afaQfNCtUcNKaYH-65">
+          <mxGeometry y="52" width="250" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-68" value="+ detectInsect&lt;div&gt;+ comparePhotoForDetectInsect&lt;/div&gt;&lt;div&gt;+ comparePhotoForDetectFlower&lt;/div&gt;&lt;div&gt;+ getTimelapse&lt;/div&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" vertex="1" parent="0V2Y0afaQfNCtUcNKaYH-65">
+          <mxGeometry y="60" width="250" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="0V2Y0afaQfNCtUcNKaYH-69" value="gestisce via raspberry l irrigazione" style="shape=callout;whiteSpace=wrap;html=1;perimeter=calloutPerimeter;" vertex="1" parent="1">
+          <mxGeometry x="240" y="700" width="120" height="80" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
