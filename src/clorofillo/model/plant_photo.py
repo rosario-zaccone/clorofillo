@@ -1,10 +1,10 @@
 from datetime import datetime
-from photo_type import PhotoType
+from .photo_type import PhotoType
 
 class PlantPhoto:
-    def __init__(self, timestamp: datetime, type: PhotoType, path: str):
+    def __init__(self, timestamp: datetime, photo_type: PhotoType, path: str):
         self.__timestamp = timestamp
-        self.__type = type
+        self.__photo_type = photo_type
         self.__path = path
 
     @property
@@ -12,8 +12,8 @@ class PlantPhoto:
         return self.__timestamp
 
     @property
-    def type(self) -> PhotoType:
-        return self.__type
+    def photo_type(self) -> PhotoType:
+        return self.__photo_type
 
     @property
     def path(self) -> str:
