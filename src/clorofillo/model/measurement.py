@@ -1,9 +1,10 @@
 from datetime import datetime
 
 class Measurement:
-    def __init__(self, timestamp: datetime, soil_moisture: float):
+    def __init__(self, timestamp: datetime, soil_moisture: float, id: int = None):
         if not (0 <= soil_moisture <= 100):
             raise ValueError("soil_moisture must be between 0 and 100")
+        self.id = id
         self._timestamp = timestamp
         self._soil_moisture = soil_moisture
 
@@ -14,3 +15,23 @@ class Measurement:
     @property
     def soil_moisture(self) -> float:
         return self._soil_moisture
+
+    @staticmethod
+    def from_orm(orm_obj):
+        return Measurement(
+            timestamp=orm_obj.timestamp,
+            soil_moisture=orm_obj.soil_moisture,
+            id=getattr(orm_obj, 'id', None)
+        )
+
+    def to_orm(self, plant_pot_id=None):
+        from persistence.measurement_orm import MeasurementORM  # aggiorna il path se necessario
+        orm = MeasurementORM(
+            timestamp=self.timestamp,
+            soil_moisture=self.soil_moisture,
+            plant_pot_id=plant_pot_id
+        )
+        # Solo se l'id esiste, lo setto. Altrimenti lo gestisce il DB.
+        if self.id is not None:
+            orm.id = self.id
+        return orm

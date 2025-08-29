@@ -1,5 +1,6 @@
 class Configuration:
-    def __init__(self, threshold: float, watering_mode: bool, shot_freq: int, insect_freq: int):
+    def __init__(self, threshold: float, watering_mode: bool, shot_freq: int, insect_freq: int, id: int = None):
+        self.id = id
         self.threshold = threshold
         self.watering_mode = watering_mode
         self.shot_freq = shot_freq
@@ -51,3 +52,26 @@ class Configuration:
         if not (5 <= value <= 15):
             raise ValueError("Insect frequency must be between 5 and 15 seconds.")
         self.__insect_freq = value
+
+    @staticmethod
+    def from_orm(orm_obj):
+        return Configuration(
+            threshold=orm_obj.threshold,
+            watering_mode=orm_obj.watering_mode,
+            shot_freq=orm_obj.shot_freq,
+            insect_freq=orm_obj.insect_freq,
+            id=getattr(orm_obj, 'id', None)
+        )
+
+    def to_orm(self):
+        from persistence.configuration_orm import ConfigurationORM  # aggiorna il path se necessario
+        orm = ConfigurationORM(
+            threshold=self.threshold,
+            watering_mode=self.watering_mode,
+            shot_freq=self.shot_freq,
+            insect_freq=self.insect_freq
+        )
+        # Solo se l'id esiste (ad esempio per update), lo setto. Altrimenti lo gestisce il DB.
+        if self.id is not None:
+            orm.id = self.id
+        return orm

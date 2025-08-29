@@ -2,8 +2,7 @@ import unittest
 from datetime import datetime
 from model.configuration import Configuration
 from model.measurement import Measurement
-from model.plant_photo import PlantPhoto
-from model.photo_type import PhotoType
+from model.plant_photo import PlantPhoto, PhotoType
 from model.plant_pot import PlantPot
 
 class TestPlantPot(unittest.TestCase):
