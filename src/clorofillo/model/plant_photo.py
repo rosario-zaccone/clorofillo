@@ -1,16 +1,11 @@
 from datetime import datetime
-from enum import Enum
-
-class PhotoType(Enum):
-    TIMELAPSE = "timelapse"
-    INSECT = "insect"
-    FLOWER = "flower"
+from clorofillo.persistence.orm_models import PlantPhotoORM
 
 class PlantPhoto:
-    def __init__(self, timestamp: datetime, photo_type: PhotoType, path: str, id: int = None):
+    def __init__(self, timestamp: datetime, is_insect: bool, path: str, id: int = None):
         self.id = id
         self.__timestamp = timestamp
-        self.__photo_type = photo_type
+        self.__is_insect = is_insect
         self.__path = path
 
     @property
@@ -18,8 +13,8 @@ class PlantPhoto:
         return self.__timestamp
 
     @property
-    def photo_type(self) -> PhotoType:
-        return self.__photo_type
+    def is_insect(self) -> bool:
+        return self.__is_insect
 
     @property
     def path(self) -> str:
@@ -29,16 +24,15 @@ class PlantPhoto:
     def from_orm(orm_obj):
         return PlantPhoto(
             timestamp=orm_obj.timestamp,
-            photo_type=PhotoType(orm_obj.photo_type),
+            is_insect=orm_obj.is_insect,
             path=orm_obj.path,
             id=getattr(orm_obj, 'id', None)
         )
 
     def to_orm(self, plant_pot_id=None):
-        from persistence.plant_photo_orm import PlantPhotoORM  # aggiorna il path se necessario
         orm = PlantPhotoORM(
             timestamp=self.timestamp,
-            photo_type=self.photo_type.value,
+            is_insect=self.is_insect,
             path=self.path,
             plant_pot_id=plant_pot_id
         )

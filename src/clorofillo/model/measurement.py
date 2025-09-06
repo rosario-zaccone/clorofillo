@@ -1,4 +1,5 @@
 from datetime import datetime
+from clorofillo.persistence.orm_models import MeasurementORM
 
 class Measurement:
     def __init__(self, timestamp: datetime, soil_moisture: float, id: int = None):
@@ -25,13 +26,11 @@ class Measurement:
         )
 
     def to_orm(self, plant_pot_id=None):
-        from persistence.measurement_orm import MeasurementORM  # aggiorna il path se necessario
         orm = MeasurementORM(
             timestamp=self.timestamp,
             soil_moisture=self.soil_moisture,
             plant_pot_id=plant_pot_id
         )
-        # Solo se l'id esiste, lo setto. Altrimenti lo gestisce il DB.
         if self.id is not None:
             orm.id = self.id
         return orm

@@ -1,6 +1,7 @@
 from .configuration import Configuration
-from .plant_photo import PlantPhoto, PhotoType
+from .plant_photo import PlantPhoto
 from .measurement import Measurement
+from clorofillo.persistence.orm_models import PlantPotORM
 
 class PlantPot:
     def __init__(self, id: int, size: float, plant: str, configuration: Configuration,
@@ -47,15 +48,6 @@ class PlantPot:
     @property
     def photos(self) -> list[PlantPhoto]:
         return self.__photos
-
-    def get_timelapse_photos(self) -> list[PlantPhoto]:
-        return [photo for photo in self.__photos if photo.photo_type == PhotoType.TIMELAPSE]
-    
-    def get_insect_photos(self) -> list[PlantPhoto]:
-        return [photo for photo in self.__photos if photo.photo_type == PhotoType.INSECT]
-    
-    def get_flower_photos(self) -> list[PlantPhoto]:
-        return [photo for photo in self.__photos if photo.photo_type == PhotoType.FLOWER]
     
     @staticmethod
     def from_orm(orm_obj):
@@ -69,13 +61,11 @@ class PlantPot:
         )
 
     def to_orm(self):
-        from persistence.plant_pot_orm import PlantPotORM  # aggiorna il path se necessario
         orm = PlantPotORM(
             id=self.id,
             size=self.size,
             plant=self.plant
         )
-        # Relazioni. Attenzione: questi oggetti ORM devono avere il plant_pot_id settato se serve.
         if self.configuration:
             orm.configuration = self.configuration.to_orm()
         if self.measurements:

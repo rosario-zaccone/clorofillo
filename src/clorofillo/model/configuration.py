@@ -1,3 +1,6 @@
+from clorofillo.persistence.orm_models import PlantPotORM
+from clorofillo.persistence.orm_models import ConfigurationORM 
+
 class Configuration:
     def __init__(self, threshold: float, watering_mode: bool, shot_freq: int, insect_freq: int, id: int = None):
         self.id = id
@@ -64,14 +67,22 @@ class Configuration:
         )
 
     def to_orm(self):
-        from persistence.configuration_orm import ConfigurationORM  # aggiorna il path se necessario
         orm = ConfigurationORM(
             threshold=self.threshold,
             watering_mode=self.watering_mode,
             shot_freq=self.shot_freq,
             insect_freq=self.insect_freq
         )
-        # Solo se l'id esiste (ad esempio per update), lo setto. Altrimenti lo gestisce il DB.
+
         if self.id is not None:
             orm.id = self.id
         return orm
+    
+    def __str__(self):
+        return (
+            f"Configuration(id={self.id}, "
+            f"threshold={self.threshold}, "
+            f"watering_mode={self.watering_mode}, "
+            f"shot_freq={self.shot_freq}, "
+            f"insect_freq={self.insect_freq})"
+        )
