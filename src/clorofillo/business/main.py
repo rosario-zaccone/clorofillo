@@ -5,7 +5,7 @@ import base64
 from dotenv import load_dotenv
 import matplotlib.pyplot as plt
 
-# Carica le variabili di ambiente da .env (se presenti)
+
 load_dotenv()
 
 API_URL = "https://insect.kindwise.com/api/v1/identification"  
