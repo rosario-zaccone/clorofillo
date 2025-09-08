@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "clorofillo"
+version = "0.1.0"
+description = ""
+authors = ["rosario <rosariozaccone@protonmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+python-telegram-bot = "^22.3"
+pylint = "^3.3.8"
+sqlalchemy = "^2.0.43"
+numpy = ">=2,<2.3.0"
+opencv-python = "^4.12.0.88"
+matplotlib = "^3.10.6"
+opencv-contrib-python = "^4.12.0.88"
+requests = "^2.32.5"
+dotenv = "^0.9.9"
+
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
