@@ -47,4 +47,10 @@ class PlantPhotoORM(Base):
     plant_pot_id = Column(Integer, ForeignKey('plant_pot.id'), nullable=False)
     plant_pot = relationship("PlantPotORM", back_populates="photos")
 
-
+class NotificationORM(Base):
+    __tablename__ = 'notification'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, nullable=False)
+    pot = Column(Integer, ForeignKey('plant_pot.id'), nullable=False)
+    description = Column(String, nullable=False)
+    plant_pot = relationship("PlantPotORM")

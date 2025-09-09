@@ -3,7 +3,7 @@ from clorofillo.persistence.orm_models import ConfigurationORM
 
 class Configuration:
     def __init__(self, threshold: float, watering_mode: bool, shot_freq: int, insect_freq: int, id: int = None):
-        self.id = id
+        self.__id = id
         self.threshold = threshold
         self.watering_mode = watering_mode
         self.shot_freq = shot_freq
@@ -74,13 +74,13 @@ class Configuration:
             insect_freq=self.insect_freq
         )
 
-        if self.id is not None:
-            orm.id = self.id
+        if self.__id is not None:
+            orm.id = self.__id
         return orm
     
     def __str__(self):
         return (
-            f"Configuration(id={self.id}, "
+            f"Configuration(id={self.__id}, "
             f"threshold={self.threshold}, "
             f"watering_mode={self.watering_mode}, "
             f"shot_freq={self.shot_freq}, "

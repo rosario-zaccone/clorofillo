@@ -49,6 +49,12 @@ class PlantPot:
     def photos(self) -> list[PlantPhoto]:
         return self.__photos
     
+    def add_photo(self, photo: PlantPhoto):
+        self.photos.append(photo)
+    
+    def add_measurement(self, measurement: Measurement):
+        self.measurements.append(measurement)
+
     @staticmethod
     def from_orm(orm_obj):
         return PlantPot(
