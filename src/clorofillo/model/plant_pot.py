@@ -79,3 +79,11 @@ class PlantPot:
         if self.photos:
             orm.photos = [p.to_orm(plant_pot_id=self.id) for p in self.photos]
         return orm
+    
+    def __str__(self):
+        return (
+            f"PlantPot(id={self.id}, size={self.size}, plant='{self.plant}', "
+            f"configuration={self.configuration}, "
+            f"measurements_count={len(self.measurements)}, "
+            f"photos_count={len(self.photos)})"
+        )

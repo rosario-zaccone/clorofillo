@@ -19,7 +19,7 @@ from clorofillo.model.measurement import Measurement
 from clorofillo.model.plant_photo import PlantPhoto
 
 def main():
-    engine = create_engine('sqlite:///data/db.sqlite', echo=False, future=True)
+    engine = create_engine('sqlite:///data/db2.sqlite', echo=False, future=True)
     Base.metadata.create_all(engine)
     SessionLocal = sessionmaker(bind=engine)
     session = SessionLocal()
