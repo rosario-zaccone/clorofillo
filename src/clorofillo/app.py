@@ -1,114 +1,113 @@
+#!/usr/bin/env python
+# pylint: disable=unused-argument
+
+import logging
 import os
-from datetime import datetime, timedelta
+
+from dotenv import load_dotenv
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
+from clorofillo.persistence.configuration_repository import ConfigurationRepository
+from clorofillo.persistence.plant_pot_repository import PlantPotRepository
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from persistence.base import Base
-from persistence.configuration_orm import ConfigurationORM
-from persistence.measurement_orm import MeasurementORM
-from persistence.plant_photo_orm import PlantPhotoORM, PhotoType
-from persistence.plant_pot_orm import PlantPotORM
+from sqlalchemy.orm import sessionmaker
+from clorofillo.model.configuration import Configuration
+from clorofillo.model.plant_pot import PlantPot
 
-DATA_DIR = "data"
-os.makedirs(DATA_DIR, exist_ok=True)
-DB_PATH = os.path.join(DATA_DIR, "test_plantpots.db")
-DATABASE_URL = f"sqlite:///{DB_PATH}"
+load_dotenv()
 
-def create_db():
-    engine = create_engine(DATABASE_URL, echo=False, future=True)
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
-    return engine
+engine = create_engine('sqlite:///data/db.sqlite', echo=False, future=True)
+SessionLocal = sessionmaker(bind=engine)
+session = SessionLocal()
+conf_repository = ConfigurationRepository(session)
+pot_repository = PlantPotRepository(session)
 
-def print_plant_pots(session: Session):
-    pots = session.query(PlantPotORM).all()
-    if not pots:
-        print("Nessun plant pot trovato.")
-        return
-    for pot in pots:
-        print(f"ID: {pot.id} | Size: {pot.size} | Plant: {pot.plant} | ConfigurationID: {pot.configuration_id}")
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
-def print_full_plantpot(session: Session, plant_pot_id: int):
-    pot = session.query(PlantPotORM).filter_by(id=plant_pot_id).first()
-    if not pot:
-        print("Plant pot non trovato.")
-        return
-    print(f"\nPLANT POT")
-    print(f"ID: {pot.id}, Size: {pot.size}, Plant: {pot.plant}")
-    print(f"Configuration: [ID: {pot.configuration.id}, Threshold: {pot.configuration.threshold}, Watering Mode: {pot.configuration.watering_mode}, Shot Freq: {pot.configuration.shot_freq}, Insect Freq: {pot.configuration.insect_freq}]")
-    print("Measurements:")
-    for m in pot.measurements:
-        print(f"  - ID: {m.id}, Timestamp: {m.timestamp}, Soil Moisture: {m.soil_moisture}")
-    print("Photos:")
-    for p in pot.photos:
-        print(f"  - ID: {p.id}, Timestamp: {p.timestamp}, Type: {p.photo_type}, Path: {p.path}")
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Informa l'utente su come usare il bot."""
+    await update.message.reply_text("TODO")
 
-def test_plantpot_with_data():
-    engine = create_db()
-    SessionLocal = sessionmaker(bind=engine)
-    session = SessionLocal()
+async def get_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Restituisce la configurazione di un vaso specifico."""
+    try:
+        if len(context.args) != 1:
+            raise ValueError("Numero errato di argomenti")
+        
+        pot_id = context.args[0]
+        pot_orm = pot_repository.get_by_id(pot_id)
+        if pot_orm is None:
+            raise ValueError("Id non esistente")
+        pot = PlantPot.from_orm(pot_orm)
+        response = pot.configuration
 
-    # 1. Create Configuration
-    config = ConfigurationORM(
-        threshold=45.0,
-        watering_mode=False,
-        shot_freq=2,
-        insect_freq=12
-    )
-    session.add(config)
-    session.commit()
-    print(f"Configuration id: {config.id}")
+        await update.message.reply_text(
+            f"""🌿 *Configurazione del vaso #{id}* 🌿
 
-    # 2. Create PlantPot for "Orchidea"
-    plant_pot = PlantPotORM(
-        size=10.0,
-        plant="Orchidea",
-        configuration_id=config.id
-    )
-    session.add(plant_pot)
-    session.commit()
-    print(f"PlantPot id: {plant_pot.id}")
-
-    # 3. Add 10 measurements (simulate one every 2 hours)
-    base_time = datetime(2025, 8, 29, 8, 0, 0)
-    measurements = []
-    for i in range(10):
-        m = MeasurementORM(
-            timestamp=base_time + timedelta(hours=2*i),
-            soil_moisture=40.0 + i,  # variabile
-            plant_pot_id=plant_pot.id
+🔧 *Modalità irrigazione:* `{response.watering_mode}`
+💧 *Soglia umidità:* `{response.threshold}%`
+📸 *Frequenza timelapse:* `{response.shot_freq} scatti/giorno`
+🐛 *Frequenza rilevazione insetti:* `{response.insect_freq} scatti/minuto`
+""",
+            parse_mode="Markdown"
         )
-        measurements.append(m)
-    session.add_all(measurements)
-    session.commit()
-    print(f"Measurement ids: {[m.id for m in measurements]}")
 
-    # 4. Add 10 photos (8 timelapse, 2 insect)
-    photos = []
-    for i in range(8):
-        p = PlantPhotoORM(
-            timestamp=base_time + timedelta(hours=i),
-            photo_type=PhotoType.TIMELAPSE,
-            path=f"photos/orchidea_timelapse_{i+1}.jpg",
-            plant_pot_id=plant_pot.id
-        )
-        photos.append(p)
-    for i in range(2):
-        p = PlantPhotoORM(
-            timestamp=base_time + timedelta(hours=8+i),
-            photo_type=PhotoType.INSECT,
-            path=f"photos/orchidea_insect_{i+1}.jpg",
-            plant_pot_id=plant_pot.id
-        )
-        photos.append(p)
-    session.add_all(photos)
-    session.commit()
-    print(f"Photo ids: {[p.id for p in photos]}")
+    except (IndexError, ValueError):
+        await update.message.reply_text("Uso corretto: /settings <ID del vaso>\nEsempio: `/settings 123`", parse_mode="Markdown")
 
-    # 5. Visualizza dati del vaso appena popolato
-    print_full_plantpot(session, plant_pot.id)
+async def set_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Aggiorna la configurazione di un vaso specifico."""
+    try:
+        if len(context.args) != 5:
+            raise ValueError("Numero errato di argomenti")
+        id_str, threshold_str, watering_mode_str, shot_freq_str, insect_freq_str = context.args
 
-    session.close()
-    print("\nTest completato. DB file creato in:", DB_PATH)
+        pot_id = int(id_str)
+        threshold = float(threshold_str)
+        watering_mode = watering_mode_str.lower() in ['true', '1', 'yes']
+        shot_freq = int(shot_freq_str)
+        insect_freq = int(insect_freq_str)
+
+        # prendo il vaso con id pot_id (checkko se esiste), se eesiste prendo la sua configuratione e l aggiorno
+        pot_orm = pot_repository.get_by_id(pot_id)
+        if pot_orm is None:
+            raise ValueError("Id non esistente")
+        pot = PlantPot.from_orm(pot_orm)
+        conf_id = pot.configuration.id
+
+        # Domain object creation (and data validation)
+        configuration = Configuration(threshold, watering_mode, shot_freq, insect_freq)
+        conf_repository.update(conf_id, configuration.to_orm())
+        await update.message.reply_text(f"Configurazione del vaso #{pot_id} aggiornata con successo!")
+
+    except ValueError as ve:
+        await update.message.reply_text(f"Errore di validazione: {ve}\nUso corretto: /set_configuration <ID> <threshold> <watering_mode> <shot_freq> <insect_freq>\nEsempio: /set_configuration 1 30.5 true 3 10")
+    except Exception as e:
+        await update.message.reply_text(f"Errore imprevisto: {e}")
+
+
+def main() -> None:
+    """Avvia il bot."""
+    application = Application.builder().token(os.getenv("TELEGRAM_TOKEN")).build()
+
+    application.add_handler(CommandHandler(["start", "help"], start))
+    application.add_handler(CommandHandler("settings", get_configuration))
+    application.add_handler(CommandHandler("setsettings", set_configuration))
+
+    application.run_polling()
 
 if __name__ == "__main__":
-    test_plantpot_with_data()
+    main()
+
+
+# migliroare messaggi errore get e set configuration
+
+
+# comnando get timelapse
+# comando get diario insetti
+# comando get misure umidità
+# notifica serbatoio vuoto
+# notifica insetto rilevato

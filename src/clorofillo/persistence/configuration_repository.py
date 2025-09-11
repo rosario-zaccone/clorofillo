@@ -16,3 +16,16 @@ class ConfigurationRepository(Repository):
 
     def remove(self, entity):
         self.session.delete(entity)
+    
+    def update(self, entity_id, new_config):
+        orm_obj = self.get_by_id(entity_id)
+        if not orm_obj:
+            raise ValueError("Configuration not found")
+
+        orm_obj.threshold = new_config.threshold
+        orm_obj.watering_mode = new_config.watering_mode
+        orm_obj.shot_freq = new_config.shot_freq
+        orm_obj.insect_freq = new_config.insect_freq
+
+        self.session.commit()
+        return orm_obj
