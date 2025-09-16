@@ -19,7 +19,6 @@ dotenv = "^0.9.9"
 moviepy = "^2.2.1"
 
 
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

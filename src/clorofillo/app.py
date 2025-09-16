@@ -4,6 +4,7 @@
 import logging
 import os
 
+from datetime import datetime
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
@@ -13,6 +14,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from clorofillo.model.configuration import Configuration
 from clorofillo.model.plant_pot import PlantPot
+from clorofillo.business.plant_pot_service import PlantPotService
 
 load_dotenv()
 
@@ -21,6 +23,7 @@ SessionLocal = sessionmaker(bind=engine)
 session = SessionLocal()
 conf_repository = ConfigurationRepository(session)
 pot_repository = PlantPotRepository(session)
+pot_service = PlantPotService(pot_repository)
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -30,6 +33,34 @@ logger = logging.getLogger(__name__)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Informa l'utente su come usare il bot."""
     await update.message.reply_text("TODO")
+
+
+async def get_timelapse(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Restituisce un video timelapse"""
+    try:
+        if len(context.args) != 4:
+            raise ValueError("Numero errato di argomenti")
+        
+        pot_id = context.args[0]
+        from_date = context.args[1].split("-")
+        to_date = context.args[2].split("-")
+        fps = int(context.args[3])
+        pot_orm = pot_repository.get_by_id(pot_id)
+        if pot_orm is None:
+            raise ValueError("Id non esistente")
+        output_path = "data/timelapses/timelapse_" + pot_id + ".mp4"
+        pot_service.timelapse(pot_id, datetime(int(from_date[0]), int(from_date[1]), int(from_date[2])), datetime(int(to_date[0]), int(to_date[1]), int(to_date[2])), fps, output_path)
+
+        await update.message.reply_text("🎬 Ecco il tuo video timelapse!")
+        await update.message.reply_video(
+            video=open(output_path, "rb"),
+            caption="🌱 Crescita della tua pianta in timelapse"
+        )
+
+    except ValueError as ve:
+        await update.message.reply_text(f"Errore: {str(ve)}")
+    except Exception as e:
+        await update.message.reply_text(f"Errore imprevisto: {e}")
 
 async def get_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Restituisce la configurazione di un vaso specifico."""
@@ -55,9 +86,11 @@ async def get_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             parse_mode="Markdown"
         )
 
-    except (IndexError, ValueError):
-        await update.message.reply_text("Uso corretto: /settings <ID del vaso>\nEsempio: `/settings 123`", parse_mode="Markdown")
-
+    except ValueError as ve:
+        await update.message.reply_text(f"Errore: {str(ve)}")
+    except Exception as e:
+        await update.message.reply_text(f"Errore imprevisto: {e}")
+    
 async def set_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Aggiorna la configurazione di un vaso specifico."""
     try:
@@ -84,7 +117,7 @@ async def set_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await update.message.reply_text(f"Configurazione del vaso #{pot_id} aggiornata con successo!")
 
     except ValueError as ve:
-        await update.message.reply_text(f"Errore di validazione: {ve}\nUso corretto: /set_configuration <ID> <threshold> <watering_mode> <shot_freq> <insect_freq>\nEsempio: /set_configuration 1 30.5 true 3 10")
+        await update.message.reply_text(f"Errore: {str(ve)}")
     except Exception as e:
         await update.message.reply_text(f"Errore imprevisto: {e}")
 
@@ -96,6 +129,7 @@ def main() -> None:
     application.add_handler(CommandHandler(["start", "help"], start))
     application.add_handler(CommandHandler("settings", get_configuration))
     application.add_handler(CommandHandler("setsettings", set_configuration))
+    application.add_handler(CommandHandler("timelapse", get_timelapse))
 
     application.run_polling()
 
@@ -103,11 +137,7 @@ if __name__ == "__main__":
     main()
 
 
-# migliroare messaggi errore get e set configuration
-
-
-# comnando get timelapse
 # comando get diario insetti
-# comando get misure umidità
+# comando get misure umidità grafico
 # notifica serbatoio vuoto
 # notifica insetto rilevato
