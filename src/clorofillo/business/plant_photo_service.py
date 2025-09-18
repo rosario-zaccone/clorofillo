@@ -5,40 +5,14 @@ import requests
 import base64
 from dotenv import load_dotenv
 import matplotlib.pyplot as plt
+from clorofillo.business.utilities import Utilities
 
-
-class InsectDetector:
-    def __init__(self, api_key=None, api_url=None, scale_superres=3):
+class PlantPhotoService:
+    def __init__(self, repository, api_key=None, api_url=None):
         load_dotenv()
-        self.API_URL = api_url or "https://insect.kindwise.com/api/v1/identification"
-        self.API_KEY = api_key or os.getenv("API_KEY")
-        self.scale_superres = scale_superres
-
-    @staticmethod
-    def is_insect_shape(contour, min_area=30, max_area=500, min_circularity=0.4):
-        area = cv2.contourArea(contour)
-        if area < min_area or area > max_area:
-            return False
-        perimeter = cv2.arcLength(contour, True)
-        if perimeter == 0:
-            return False
-        circularity = 4 * np.pi * (area / (perimeter * perimeter))
-        if circularity < min_circularity or circularity > 1.2:
-            return False
-        return True
-
-    @staticmethod
-    def classical_superres(img, scale=3):
-        height, width = img.shape[:2]
-        new_size = (width * scale, height * scale)
-        return cv2.resize(img, new_size, interpolation=cv2.INTER_LANCZOS4)
-
-    @staticmethod
-    def img_to_base64(img, ext=".png"):
-        _, buffer = cv2.imencode(ext, img)
-        img_bytes = buffer.tobytes()
-        base64_str = base64.b64encode(img_bytes).decode("utf-8")
-        return base64_str
+        self.__repository = repository
+        self.__API_URL = api_url or "https://insect.kindwise.com/api/v1/identification"
+        self.__API_KEY = api_key or os.getenv("API_KEY")
 
     def detect_insect_patches_base64(self, img1_path, img2_path):
         img1 = cv2.imread(img1_path)
@@ -64,11 +38,11 @@ class InsectDetector:
         patches_base64 = []
 
         for cnt in contours:
-            if self.is_insect_shape(cnt):
+            if Utilities.is_insect_shape(cnt):
                 x, y, w, h = cv2.boundingRect(cnt)
                 patch = img2[y : y + h, x : x + w]
-                patch_superres = self.classical_superres(patch, scale=self.scale_superres)
-                patch_b64 = self.img_to_base64(patch_superres)
+                patch_superres = Utilities.classical_superres(patch, scale=3)
+                patch_b64 = Utilities.img_to_base64(patch_superres)
                 patches_base64.append(patch_b64)
 
         return patches_base64
@@ -93,34 +67,22 @@ class InsectDetector:
                 f"Errore API: status code {response.status_code}, response: {response.text}"
             )
 
-    @staticmethod
-    def show_base64_images(base64_images):
-        for i, b64_str in enumerate(base64_images):
-            img_data = base64.b64decode(b64_str)
-            np_arr = np.frombuffer(img_data, np.uint8)
-            img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            plt.figure()
-            plt.imshow(img_rgb)
-            plt.title(f"Patch {i+1} super-resolved")
-            plt.axis("off")
-        plt.show()
-
 
 if __name__ == "__main__":
-    before_img = "data/photos/insect/before.png"
-    after_img = "data/photos/insect/pippo.png"
+    before_img = "data/photos/maybe_insect/before.png"
+    after_img = "data/photos/maybe_insect/pippo.png"
 
-    detector = InsectDetector(scale_superres=3)
+    detector = PlantPhotoService()
 
     print("📸 Detecting and super-resolving potential insect patches...")
     patches_b64 = detector.detect_insect_patches_base64(before_img, after_img)
 
     print(f"Found {len(patches_b64)} patches.")
 
-
+    '''
     if patches_b64:
         insect_name = detector.call_kindwise_api_with_files([patches_b64[0]])
         print("Identified insect:", insect_name)
     else:
         print("No patches detected.")
+        '''

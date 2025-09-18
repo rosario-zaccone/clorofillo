@@ -23,6 +23,9 @@ class PlantPotService:
         
     def insect_diary():
         pass
+
+    def add_photo():
+        pass
         
 
     
