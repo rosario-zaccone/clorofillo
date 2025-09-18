@@ -6,6 +6,10 @@ class PlantPotService:
     def __init__(self, repository: PlantPotRepository):
         self._repository = repository
     
+    @property
+    def repository(self):
+         return self._repository
+    
     def timelapse(self, id, date_from, date_to, fps, output_path):
         pot = self._repository.get_by_id(id)
         if pot is None:

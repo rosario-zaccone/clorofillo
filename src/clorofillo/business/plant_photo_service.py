@@ -16,6 +16,10 @@ class PlantPhotoService:
         self._API_URL = api_url or "https://insect.kindwise.com/api/v1/identification"
         self._API_KEY = api_key or os.getenv("API_KEY")
 
+    @property
+    def repository(self):
+        return self._repository
+
     def _detect_insect_patches_base64(self, img1_path, img2_path):
         img1 = cv2.imread(img1_path)
         img2 = cv2.imread(img2_path)

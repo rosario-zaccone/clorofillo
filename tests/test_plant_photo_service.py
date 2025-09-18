@@ -11,7 +11,6 @@ from clorofillo.persistence.orm_models import Base, PlantPotORM
 from clorofillo.persistence.plant_photo_repository import PlantPhotoRepository
 from clorofillo.model.plant_photo import PlantPhoto
 from clorofillo.business.plant_photo_service import PlantPhotoService
-from picamzero import Camera
 
 
 # Fixture per il DB in-memory
@@ -26,7 +25,7 @@ def in_memory_session():
 
 
 def test_timelapse_shot(in_memory_session):
-    service = PlantPhotoService(PlantPhotoRepository(in_memory_session), Camera())
+    service = PlantPhotoService(PlantPhotoRepository(in_memory_session), MagicMock())
     dtime = datetime.now()
     readable = str(dtime).replace(" ", "_")
     service.timelapse_shot(1, dtime)
