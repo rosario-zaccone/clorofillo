@@ -1,13 +1,13 @@
 import cv2
 import numpy as np
-import os
+import os, shutil
 import requests
 import base64
 from dotenv import load_dotenv
 import matplotlib.pyplot as plt
+from time import time
 from clorofillo.business.utilities import Utilities
-from picamzero import Camera
-
+from clorofillo.model.plant_photo import PlantPhoto
 class PlantPhotoService:
     def __init__(self, repository, camera, api_key=None, api_url=None):
         load_dotenv()
@@ -16,7 +16,7 @@ class PlantPhotoService:
         self._API_URL = api_url or "https://insect.kindwise.com/api/v1/identification"
         self._API_KEY = api_key or os.getenv("API_KEY")
 
-    def detect_insect_patches_base64(self, img1_path, img2_path):
+    def _detect_insect_patches_base64(self, img1_path, img2_path):
         img1 = cv2.imread(img1_path)
         img2 = cv2.imread(img2_path)
 
@@ -49,7 +49,7 @@ class PlantPhotoService:
 
         return patches_base64
 
-    def call_kindwise_api_with_files(self, patches_base64):
+    def _call_kindwise_api_with_files(self, patches_base64):
         response = requests.post(
             self._API_URL,
             params={"details": "url,common_names"},
@@ -69,6 +69,39 @@ class PlantPhotoService:
                 f"Errore API: status code {response.status_code}, response: {response.text}"
             )
 
+    def insect_shot(self, pot_id, timestamp): #timestamp deve essere YY-MM-DD-H-M-S
+            # scatta foto after e comparale con before (solo se esiste before)
+            # testa i sospetti con api insetti
+            # se sono insetti spostali nella cartella insect e mettili nel db
+            # rimuovi l avecchia before, fai diventare after la nuova before
+        
+        # nome file insetto: id_timestamp_eventuale numero se ci sono piu patch per itmestamp
+        readable = str(timestamp).replace(" ", "_")
+        before_img = "data/photos/maybe_insect/before_" + pot_id + ".jpeg"
+        after_img = "data/photos/maybe_insect/after_" + pot_id + ".jpeg"
+        self._camera.take_photo(after_img)
+        if os.path.isfile(before_img):
+            patches_b64 = detector._detect_insect_patches_base64(before_img, after_img)
+            if patches_b64:
+                i = 0
+                for patch in patches_b64:
+                    # ora la salva sempre, in futuro modifica in modo che la salvi solo se l'API individua un insetto
+                    img_data = base64.b64decode(patch)
+                    output_path = "data/photos/insect/" + pot_id + "_" + readable + "_" + i
+                    with open(output_path, "wb") as f:
+                        f.write(img_data)
+                        photo = PlantPhoto(timestamp, True, output_path)
+                        self._repository.insert(photo.to_orm(pot_id))
+                    i = i + 1
+            os.remove(before_img)
+        os.rename(after_img, before_img)
+    
+    def timelapse_shot(self, pot_id, timestamp): 
+        readable = str(timestamp).replace(" ", "_")
+        path = "data/photos/timelapse/" + str(pot_id) + "_" + readable + ".jpg"
+        self._camera.take_photo(path)
+        photo = PlantPhoto(timestamp, False, path)
+        self._repository.insert(photo.to_orm(pot_id))
 
 
 if __name__ == "__main__":

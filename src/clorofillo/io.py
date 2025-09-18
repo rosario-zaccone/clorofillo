@@ -1,10 +1,12 @@
 import sys
+sys.path.append('/usr/lib/python3/dist-packages')
 import os
 from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from clorofillo.persistence.orm_models import Base
 from clorofillo.persistence.plant_pot_repository import PlantPotRepository
+from clorofillo.persistence.plant_photo_repository import PlantPhotoRepository
 from clorofillo.model.plant_pot import PlantPot
 from clorofillo.model.configuration import Configuration
 from clorofillo.model.measurement import Measurement
@@ -13,8 +15,8 @@ from clorofillo.business.plant_pot_service import PlantPotService
 import RPi.GPIO as GPIO
 import time
 from clorofillo.business.utilities import Utilities
-
-
+from clorofillo.business.plant_photo_service import PlantPhotoService
+from picamzero import Camera
 
 GPIO.setmode(GPIO.BCM)
 SERVO_PIN = 17
@@ -27,11 +29,13 @@ def main():
     SessionLocal = sessionmaker(bind=engine)
     session = SessionLocal()
     repo = PlantPotRepository(session)
+    service = PlantPhotoService(PlantPhotoRepository(session), Camera())
     try:
         pot_one = PlantPot.from_orm(repo.get_by_id(1))
         pot_two = PlantPot.from_orm(repo.get_by_id(2))
         # pot_three = PlantPot.from_orm(repo.get_by_id(3))  # opzionale
-        insect_freq = pot_one.configuration.insect_freq
+        insect_freq = 60 / pot_one.configuration.insect_freq
+
 
         pwm.start(Utilities.angle_to_percent(0))  # Posizione iniziale
         time.sleep(1)
@@ -39,16 +43,16 @@ def main():
 
         while True:
             pwm.ChangeDutyCycle(Utilities.angle_to_percent(0))
-            #shot()
-            time.sleep(2)
+            service.timelapse_shot(1, datetime.now())
+            time.sleep(3)
 
             pwm.ChangeDutyCycle(Utilities.angle_to_percent(90))
-            #shot()
-            time.sleep(2)
+            service.timelapse_shot(2, datetime.now())
+            time.sleep(3)
 
             pwm.ChangeDutyCycle(Utilities.angle_to_percent(180))
-            #shot()
-            time.sleep(2)
+            service.timelapse_shot(3, datetime.now())
+            time.sleep(3)
 
     except KeyboardInterrupt:
         print("Interrotto dall'utente.")

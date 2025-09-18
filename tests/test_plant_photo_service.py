@@ -11,6 +11,8 @@ from clorofillo.persistence.orm_models import Base, PlantPotORM
 from clorofillo.persistence.plant_photo_repository import PlantPhotoRepository
 from clorofillo.model.plant_photo import PlantPhoto
 from clorofillo.business.plant_photo_service import PlantPhotoService
+from picamzero import Camera
+
 
 # Fixture per il DB in-memory
 @pytest.fixture
@@ -24,7 +26,8 @@ def in_memory_session():
 
 
 def test_camera(in_memory_session):
-    service = PlantPhotoService(PlantPhotoRepository(in_memory_session), )
+    service = PlantPhotoService(PlantPhotoRepository(in_memory_session), Camera())
+    service.shot("prova.jpg")
 
 
 
