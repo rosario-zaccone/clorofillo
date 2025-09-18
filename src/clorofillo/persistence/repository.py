@@ -2,12 +2,15 @@ from abc import ABC, abstractmethod
 
 class Repository(ABC):
     def __init__(self, session, entity):
-        self.session = session
+        self._session = session
         self._entity = entity
 
     @property
     def entity(self):
         return self._entity
+    @property
+    def session(self):
+        return self._session
 
     @abstractmethod
     def get_by_id(self, entity_id):

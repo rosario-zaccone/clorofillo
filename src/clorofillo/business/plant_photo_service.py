@@ -102,6 +102,7 @@ class PlantPhotoService:
         self._camera.take_photo(path)
         photo = PlantPhoto(timestamp, False, path)
         self._repository.insert(photo.to_orm(pot_id))
+        self._repository.session.commit()
 
 
 if __name__ == "__main__":
