@@ -25,18 +25,19 @@ pwm = GPIO.PWM(SERVO_PIN, 50)
 
 
 def main():
+    # il db deve avere gia dentro i tre pot e le loro configurazioni di base
     engine = create_engine('sqlite:///data/db.sqlite', echo=False, future=True)
     SessionLocal = sessionmaker(bind=engine)
     session = SessionLocal()
     repo = PlantPotRepository(session)
-    service = PlantPhotoService(PlantPhotoRepository(session), Camera())
+    photo_repo = PlantPhotoRepository(session)
+    service = PlantPhotoService(photo_repo, Camera())
+
+    pot_one = PlantPot.from_orm(repo.get_by_id(1))
+    pot_two = PlantPot.from_orm(repo.get_by_id(2))
+    # pot_three = PlantPot.from_orm(repo.get_by_id(3))  # opzionale
+    insect_freq = 60 / pot_one.configuration.insect_freq
     try:
-        pot_one = PlantPot.from_orm(repo.get_by_id(1))
-        pot_two = PlantPot.from_orm(repo.get_by_id(2))
-        # pot_three = PlantPot.from_orm(repo.get_by_id(3))  # opzionale
-        insect_freq = 60 / pot_one.configuration.insect_freq
-
-
         pwm.start(Utilities.angle_to_percent(0))  # Posizione iniziale
         time.sleep(1)
 

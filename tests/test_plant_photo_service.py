@@ -25,9 +25,14 @@ def in_memory_session():
     session.close()
 
 
-def test_camera(in_memory_session):
+def test_timelapse_shot(in_memory_session):
     service = PlantPhotoService(PlantPhotoRepository(in_memory_session), Camera())
-    service.shot("prova.jpg")
+    dtime = datetime.now()
+    readable = str(dtime).replace(" ", "_")
+    service.timelapse_shot(1, dtime)
+    path = "data/photos/timelapse/" + str(1) + "_" + readable + ".jpg"
+    repo = PlantPhotoRepository(in_memory_session)
+    assert repo.get_by_id(1).path == path
 
 
 
