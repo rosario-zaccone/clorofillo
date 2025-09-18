@@ -7,7 +7,7 @@ class PlantPotRepository(Repository):
         super().__init__(session, PlantPotORM)
 
     def get_by_id(self, entity_id):
-        return self.session.query(self.entity).get(entity_id)
+        return self.session.get(self.entity, entity_id)
 
     def get_all(self):
         return self.session.query(self.entity).all()

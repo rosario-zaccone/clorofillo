@@ -1,31 +1,32 @@
-import sys
-import os
+import pytest
 from datetime import datetime
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-src_path = os.path.abspath(os.path.join(current_dir, '..', 'src'))
-
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
-
-from clorofillo.persistence.orm_models import PlantPhotoORM, PlantPotORM, Base
+from clorofillo.persistence.orm_models import Base, PlantPotORM
 from clorofillo.persistence.plant_photo_repository import PlantPhotoRepository
 from clorofillo.model.plant_photo import PlantPhoto
 
-def main():
+# Fixture per il DB in-memory
+@pytest.fixture
+def in_memory_session():
     engine = create_engine('sqlite:///:memory:', echo=False, future=True)
     Base.metadata.create_all(engine)
-    SessionLocal = sessionmaker(bind=engine)
-    session = SessionLocal()
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    yield session
+    session.close()
 
-    plant_pot = PlantPotORM(size=2.5, plant="Ficus")
-    session.add(plant_pot)
-    session.commit()  
+# Fixture per inserire un vaso
+@pytest.fixture
+def plant_pot(in_memory_session):
+    pot = PlantPotORM(size=2.5, plant="Ficus")
+    in_memory_session.add(pot)
+    in_memory_session.commit()
+    return pot
 
-    repo = PlantPhotoRepository(session)
+def test_insert_and_get_plant_photo(in_memory_session, plant_pot):
+    repo = PlantPhotoRepository(in_memory_session)
 
     timestamp = datetime.now()
     photo_domain = PlantPhoto(
@@ -35,28 +36,35 @@ def main():
     )
 
     photo_orm = photo_domain.to_orm(plant_pot_id=plant_pot.id)
-
     repo.insert(photo_orm)
-    session.commit()
+    in_memory_session.commit()
 
-    print(f"PlantPhoto saved with id: {photo_orm.id}")
+    assert photo_orm.id is not None
 
     loaded_orm = repo.get_by_id(photo_orm.id)
     loaded_domain = PlantPhoto.from_orm(loaded_orm)
 
-    print("Loaded PlantPhoto:")
-    print(f"id: {loaded_domain.id}")
-    print(f"timestamp: {loaded_domain.timestamp}")
-    print(f"is_insect: {loaded_domain.is_insect}")
-    print(f"path: {loaded_domain.path}")
+    assert loaded_domain.id == photo_orm.id
+    assert loaded_domain.timestamp == timestamp
+    assert loaded_domain.is_insect is True
+    assert loaded_domain.path == '/path/to/photo.jpg'
 
-    if repo.get_by_id(-1) is None:
-        print("Not found")
+def test_get_plant_photo_not_found(in_memory_session):
+    repo = PlantPhotoRepository(in_memory_session)
+    assert repo.get_by_id(-1) is None
+
+def test_get_all_plant_photos(in_memory_session, plant_pot):
+    repo = PlantPhotoRepository(in_memory_session)
+
+    photo1 = PlantPhoto(timestamp=datetime.now(), is_insect=False, path='a.jpg').to_orm(plant_pot_id=plant_pot.id)
+    photo2 = PlantPhoto(timestamp=datetime.now(), is_insect=True, path='b.jpg').to_orm(plant_pot_id=plant_pot.id)
+
+    repo.insert(photo1)
+    repo.insert(photo2)
+    in_memory_session.commit()
 
     all_photos = repo.get_all()
-    print(f"Total photos in DB: {len(all_photos)}")
-
-    session.close()
-
-if __name__ == "__main__":
-    main()
+    assert len(all_photos) == 2
+    paths = [p.path for p in all_photos]
+    assert 'a.jpg' in paths
+    assert 'b.jpg' in paths

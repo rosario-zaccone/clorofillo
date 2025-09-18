@@ -1,27 +1,23 @@
-import sys
-import os
-current_dir = os.path.dirname(os.path.abspath(__file__))
-src_path = os.path.abspath(os.path.join(current_dir, '..', 'src'))
-
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
-
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from clorofillo.persistence.orm_models import ConfigurationORM, Base
+
+from clorofillo.persistence.orm_models import Base
 from clorofillo.persistence.configuration_repository import ConfigurationRepository
 from clorofillo.model.configuration import Configuration
 
-def main():
-    # Setup DB
+@pytest.fixture
+def in_memory_session():
     engine = create_engine('sqlite:///:memory:', echo=False, future=True)
     Base.metadata.create_all(engine)
     SessionLocal = sessionmaker(bind=engine)
     session = SessionLocal()
+    yield session
+    session.close()
 
-    repo = ConfigurationRepository(session)
+def test_insert_and_get_by_id(in_memory_session):
+    repo = ConfigurationRepository(in_memory_session)
 
-    # Model creation
     config_domain = Configuration(
         threshold=60.0,
         watering_mode=True,
@@ -30,25 +26,18 @@ def main():
     )
 
     config_orm = config_domain.to_orm()
-
-    # Insert in DB
     repo.insert(config_orm)
-    session.commit()
+    in_memory_session.commit()
 
-    print(f"Configuration saved with id: {config_orm.id}")
-
-    # GET from DB
     loaded_orm = repo.get_by_id(config_orm.id)
     loaded_domain = Configuration.from_orm(loaded_orm)
 
-    print("Loaded Configuration:")
-    print(loaded_domain)
+    assert loaded_domain.threshold == 60.0
+    assert loaded_domain.watering_mode is True
+    assert loaded_domain.shot_freq == 3
+    assert loaded_domain.insect_freq == 8
 
-    # Test None
-    if (repo.get_by_id(-1) == None):
-        print("Not found")
-
-    session.close()
-
-if __name__ == "__main__":
-    main()
+def test_get_by_id_not_found(in_memory_session):
+    repo = ConfigurationRepository(in_memory_session)
+    result = repo.get_by_id(-1)
+    assert result is None
