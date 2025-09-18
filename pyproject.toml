@@ -6,7 +6,7 @@ authors = ["rosario <rosariozaccone@protonmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.11"
 python-telegram-bot = "^22.3"
 pylint = "^3.3.8"
 sqlalchemy = "^2.0.43"
