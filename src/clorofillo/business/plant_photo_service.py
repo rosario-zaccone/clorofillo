@@ -70,14 +70,16 @@ class PlantPhotoService:
 
 if __name__ == "__main__":
     before_img = "data/photos/maybe_insect/before.png"
-    after_img = "data/photos/maybe_insect/pippo.png"
+    after_img = "data/photos/maybe_insect/after.png"
 
-    detector = PlantPhotoService()
+
+    detector = PlantPhotoService(None)
 
     print("📸 Detecting and super-resolving potential insect patches...")
     patches_b64 = detector.detect_insect_patches_base64(before_img, after_img)
 
     print(f"Found {len(patches_b64)} patches.")
+    Utilities.show_base64_images(patches_b64)
 
     '''
     if patches_b64:
