@@ -35,7 +35,7 @@ def main():
 
     pot_one = PlantPot.from_orm(repo.get_by_id(1))
     pot_two = PlantPot.from_orm(repo.get_by_id(2))
-    # pot_three = PlantPot.from_orm(repo.get_by_id(3))  # opzionale
+    pot_three = PlantPot.from_orm(repo.get_by_id(3))
     insect_freq = 60 / pot_one.configuration.insect_freq
     try:
         pwm.start(Utilities.angle_to_percent(0))  # Posizione iniziale
@@ -54,6 +54,9 @@ def main():
             pwm.ChangeDutyCycle(Utilities.angle_to_percent(180))
             service.timelapse_shot(3, datetime.now())
             time.sleep(3)
+            photos = photo_repo.get_all()
+            for p in photos:
+                print(p.path)
 
     except KeyboardInterrupt:
         print("Interrotto dall'utente.")

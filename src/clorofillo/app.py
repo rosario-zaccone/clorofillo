@@ -114,6 +114,7 @@ async def set_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         # Domain object creation (and data validation)
         configuration = Configuration(threshold, watering_mode, shot_freq, insect_freq)
         conf_repository.update(conf_id, configuration.to_orm())
+        conf_repository.session.commit()
         await update.message.reply_text(f"Configurazione del vaso #{pot_id} aggiornata con successo!")
 
     except ValueError as ve:
