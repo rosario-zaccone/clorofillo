@@ -3,7 +3,7 @@ from clorofillo.persistence.orm_models import ConfigurationORM
 
 class Configuration:
     def __init__(self, threshold: float, watering_mode: bool, shot_freq: int, insect_freq: int, id: int = None):
-        self.__id = id
+        self._id = id
         self.threshold = threshold
         self.watering_mode = watering_mode
         self.shot_freq = shot_freq
@@ -11,11 +11,11 @@ class Configuration:
 
     @property
     def id(self):
-        return self.__id
+        return self._id
 
     @property
     def threshold(self):
-        return self.__threshold
+        return self._threshold
 
     @threshold.setter
     def threshold(self, value):
@@ -24,21 +24,21 @@ class Configuration:
         value = float(value)
         if not (0.0 <= value <= 100.0):
             raise ValueError("Threshold must be between 0.0 and 100.0.")
-        self.__threshold = value
+        self._threshold = value
 
     @property
     def watering_mode(self):
-        return self.__watering_mode
+        return self._watering_mode
 
     @watering_mode.setter
     def watering_mode(self, value):
         if not isinstance(value, bool):
             raise ValueError("Watering mode must be a boolean.")
-        self.__watering_mode = value
+        self._watering_mode = value
 
     @property
     def shot_freq(self):
-        return self.__shot_freq
+        return self._shot_freq
 
     @shot_freq.setter
     def shot_freq(self, value):
@@ -46,11 +46,11 @@ class Configuration:
             raise ValueError("Shot frequency must be an integer.")
         if not (1 <= value <= 4):
             raise ValueError("Shot frequency must be between 1 and 4 shots per day.")
-        self.__shot_freq = value
+        self._shot_freq = value
 
     @property
     def insect_freq(self):
-        return self.__insect_freq
+        return self._insect_freq
 
     @insect_freq.setter
     def insect_freq(self, value):
@@ -58,7 +58,7 @@ class Configuration:
             raise ValueError("Insect frequency must be an integer.")
         if not (5 <= value <= 15):
             raise ValueError("Insect frequency must be between 3 and 12 shots per minute.")
-        self.__insect_freq = value
+        self._insect_freq = value
 
     @staticmethod
     def from_orm(orm_obj):
@@ -78,13 +78,13 @@ class Configuration:
             insect_freq=self.insect_freq
         )
 
-        if self.__id is not None:
-            orm.id = self.__id
+        if self._id is not None:
+            orm.id = self._id
         return orm
     
     def __str__(self):
         return (
-            f"Configuration(id={self.__id}, "
+            f"Configuration(id={self._id}, "
             f"threshold={self.threshold}, "
             f"watering_mode={self.watering_mode}, "
             f"shot_freq={self.shot_freq}, "

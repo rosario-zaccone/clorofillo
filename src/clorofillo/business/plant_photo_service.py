@@ -6,13 +6,15 @@ import base64
 from dotenv import load_dotenv
 import matplotlib.pyplot as plt
 from clorofillo.business.utilities import Utilities
+from picamzero import Camera
 
 class PlantPhotoService:
-    def __init__(self, repository, api_key=None, api_url=None):
+    def __init__(self, repository, camera, api_key=None, api_url=None):
         load_dotenv()
-        self.__repository = repository
-        self.__API_URL = api_url or "https://insect.kindwise.com/api/v1/identification"
-        self.__API_KEY = api_key or os.getenv("API_KEY")
+        self._repository = repository
+        self._camera = camera
+        self._API_URL = api_url or "https://insect.kindwise.com/api/v1/identification"
+        self._API_KEY = api_key or os.getenv("API_KEY")
 
     def detect_insect_patches_base64(self, img1_path, img2_path):
         img1 = cv2.imread(img1_path)
@@ -49,9 +51,9 @@ class PlantPhotoService:
 
     def call_kindwise_api_with_files(self, patches_base64):
         response = requests.post(
-            self.API_URL,
+            self._API_URL,
             params={"details": "url,common_names"},
-            headers={"Api-Key": self.API_KEY},
+            headers={"Api-Key": self._API_KEY},
             json={"images": patches_base64},
         )
 
@@ -68,6 +70,7 @@ class PlantPhotoService:
             )
 
 
+
 if __name__ == "__main__":
     before_img = "data/photos/maybe_insect/before.png"
     after_img = "data/photos/maybe_insect/after.png"
@@ -75,16 +78,17 @@ if __name__ == "__main__":
 
     detector = PlantPhotoService(None)
 
+    '''
     print("📸 Detecting and super-resolving potential insect patches...")
     patches_b64 = detector.detect_insect_patches_base64(before_img, after_img)
 
     print(f"Found {len(patches_b64)} patches.")
     Utilities.show_base64_images(patches_b64)
 
-    '''
+    
     if patches_b64:
         insect_name = detector.call_kindwise_api_with_files([patches_b64[0]])
         print("Identified insect:", insect_name)
     else:
         print("No patches detected.")
-        '''
+    '''

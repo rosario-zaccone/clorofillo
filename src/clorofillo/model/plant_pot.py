@@ -6,48 +6,48 @@ from clorofillo.persistence.orm_models import PlantPotORM
 class PlantPot:
     def __init__(self, id: int, size: float, plant: str, configuration: Configuration,
                  measurements: list[Measurement], photos: list[PlantPhoto]):
-        self.__id = id
-        self.__size = size
-        self.__plant = plant
-        self.__configuration = configuration
-        self.__measurements = measurements
-        self.__photos = photos
+        self._id = id
+        self._size = size
+        self._plant = plant
+        self._configuration = configuration
+        self._measurements = measurements
+        self._photos = photos
 
     @property
     def id(self) -> int:
-        return self.__id
+        return self._id
 
     @property
     def size(self) -> float:
-        return self.__size
+        return self._size
 
     @size.setter
     def size(self, value: float):
-        self.__size = value
+        self._size = value
 
     @property
     def plant(self) -> str:
-        return self.__plant
+        return self._plant
 
     @plant.setter
     def plant(self, value: str):
-        self.__plant = value
+        self._plant = value
 
     @property
     def configuration(self) -> Configuration:
-        return self.__configuration
+        return self._configuration
 
     @configuration.setter
     def configuration(self, value: Configuration):
-        self.__configuration = value
+        self._configuration = value
 
     @property
     def measurements(self) -> list[Measurement]:
-        return self.__measurements
+        return self._measurements
 
     @property
     def photos(self) -> list[PlantPhoto]:
-        return self.__photos
+        return self._photos
     
     def add_photo(self, photo: PlantPhoto):
         self.photos.append(photo)
