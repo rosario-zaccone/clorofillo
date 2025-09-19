@@ -32,31 +32,65 @@ def main():
     repo = PlantPotRepository(session)
     photo_repo = PlantPhotoRepository(session)
     service = PlantPhotoService(photo_repo, Camera())
-
-    pot_one = PlantPot.from_orm(repo.get_by_id(1))
-    pot_two = PlantPot.from_orm(repo.get_by_id(2))
-    pot_three = PlantPot.from_orm(repo.get_by_id(3))
-    insect_freq = 60 / pot_one.configuration.insect_freq
+    pwm.start(Utilities.angle_to_percent(0))  # Posizione iniziale
+    time.sleep(1)
+    last_day = None
+    
     try:
-        pwm.start(Utilities.angle_to_percent(0))  # Posizione iniziale
-        time.sleep(1)
-
-
         while True:
+            pot_one = PlantPot.from_orm(repo.get_by_id(1))
+            pot_two = PlantPot.from_orm(repo.get_by_id(2))
+            pot_three = PlantPot.from_orm(repo.get_by_id(3))
+            insect_freq = 60 / pot_one.configuration.insect_freq
+            t_freq_one = pot_one.configuration.shot_freq
+            t_freq_two = pot_two.configuration.shot_freq
+            t_freq_three = pot_three.configuration.shot_freq
+
+            # Calcola le ore di scatto per ciascun vaso, le aggiorna se scatta il nuovo giorno
+            dt = datetime.now()
+            now = dt.hour
+            current_day = dt.day
+            if current_day != last_day:
+                last_day = current_day
+                hours_one = Utilities.shot_hours(t_freq_one)
+                hours_two = Utilities.shot_hours(t_freq_two)
+                hours_three = Utilities.shot_hours(t_freq_three)
+
+            # Timelapse photos
+
+            #Se si è nell'ora di scatto scatta la foto e rimuove l'ora dalle ore di scatto
+            if now in hours_one:
+                hours_one.pop(0)
+                pwm.ChangeDutyCycle(Utilities.angle_to_percent(0))
+                service.timelapse_shot(1, datetime.now())
+                time.sleep(2)
+
+            if now in hours_two:
+                hours_two.pop(0)
+                pwm.ChangeDutyCycle(Utilities.angle_to_percent(90))
+                service.timelapse_shot(1, datetime.now())
+                time.sleep(2)
+
+            if now in hours_three:
+                hours_three.pop(0)
+                pwm.ChangeDutyCycle(Utilities.angle_to_percent(180))
+                service.timelapse_shot(1, datetime.now())
+                time.sleep(2)
+
+            # Insect detection
+            '''
             pwm.ChangeDutyCycle(Utilities.angle_to_percent(0))
-            service.timelapse_shot(1, datetime.now())
+            service.insect_shot(1, datetime.now())
             time.sleep(3)
 
             pwm.ChangeDutyCycle(Utilities.angle_to_percent(90))
-            service.timelapse_shot(2, datetime.now())
+            service.insect_shot(2, datetime.now())
             time.sleep(3)
 
             pwm.ChangeDutyCycle(Utilities.angle_to_percent(180))
-            service.timelapse_shot(3, datetime.now())
+            service.insect_shot(3, datetime.now())
             time.sleep(3)
-            photos = photo_repo.get_all()
-            for p in photos:
-                print(p.path)
+            '''
 
     except KeyboardInterrupt:
         print("Interrotto dall'utente.")

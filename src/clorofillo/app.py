@@ -125,7 +125,17 @@ async def set_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 def main() -> None:
     """Avvia il bot."""
-    application = Application.builder().token(os.getenv("TELEGRAM_TOKEN")).build()
+    application = (
+        Application.builder()
+        .token(os.getenv("TELEGRAM_TOKEN"))
+        .connect_timeout(30)         # tempo massimo per stabilire la connessione
+        .read_timeout(60)            # tempo massimo per ricevere la risposta
+        .write_timeout(120)          # tempo massimo per completare l'upload del file
+        .pool_timeout(30)            # timeout per ottenere una connessione dalla pool
+        .get_updates_read_timeout(60)  # utile solo con polling
+        .build()
+    )
+    
 
     application.add_handler(CommandHandler(["start", "help"], start))
     application.add_handler(CommandHandler("settings", get_configuration))

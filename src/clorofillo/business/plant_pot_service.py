@@ -20,7 +20,7 @@ class PlantPotService:
                 raise ValueError("fps must be > 0")
         photos = self._repository.get_photos_by_date_range(pot.id, date_from, date_to)
         photos_domain = [PlantPhoto.from_orm(photo) for photo in photos]
-        photos_filenames = ["data/photos/timelapse/" + photo.path for photo in photos_domain]
+        photos_filenames = [photo.path for photo in photos_domain]
 
         clip = ImageSequenceClip(photos_filenames, fps=fps)
         clip.write_videofile(output_path)
