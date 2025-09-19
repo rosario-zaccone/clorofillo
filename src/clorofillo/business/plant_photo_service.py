@@ -24,50 +24,46 @@ class PlantPhotoService:
     def repository(self):
         return self._repository
 
+
     def _detect_insect_patches_base64(self, img1_path, img2_path):
-        """
-        Compare two images and return a list of base64-encoded PNGs for patches in img2
-        that are not present in img1 (potentially insects).
-
-        Args:
-            img1_path (str): Path to the first image (background/reference image).
-            img2_path (str): Path to the second image (image with possible insects).
-
-        Returns:
-            List[str]: List of base64-encoded PNG images (as strings) of detected patches.
-        """
-        # Load images
         img1 = cv2.imread(img1_path)
         img2 = cv2.imread(img2_path)
         if img1 is None or img2 is None:
-            raise ValueError("One or both image paths are invalid.")
+            raise ValueError("Una delle immagini non è valida.")
 
-        # Convert to grayscale
         gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
         gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
 
-        # Compute absolute difference
         diff = cv2.absdiff(gray2, gray1)
+        _, thresh = cv2.threshold(diff, 70, 255, cv2.THRESH_BINARY)
 
-        # Threshold the difference
-        _, thresh = cv2.threshold(diff, 30, 255, cv2.THRESH_BINARY)
-
-        # Morphological operations to remove noise and fill holes
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
         thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
         thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
 
-        # Find contours (connected components)
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         patch_b64_list = []
+        height, width, _ = img2.shape
+
         for cnt in contours:
             area = cv2.contourArea(cnt)
-            if area < 100:  # Filter out very small regions (tune as needed)
+            if area < 1500:
                 continue
+
             x, y, w, h = cv2.boundingRect(cnt)
-            patch = img2[y:y+h, x:x+w]
-            # Convert to PIL Image for base64 encoding
+
+            # Espandi il bounding box per includere più sfondo (es. 2x in altezza e larghezza)
+            padding_x = w // 2
+            padding_y = h // 2
+
+            # Nuove coordinate espanse, limitate ai bordi dell'immagine
+            x_new = max(x - padding_x, 0)
+            y_new = max(y - padding_y, 0)
+            x_end = min(x + w + padding_x, width)
+            y_end = min(y + h + padding_y, height)
+
+            patch = img2[y_new:y_end, x_new:x_end]
             patch_pil = Image.fromarray(cv2.cvtColor(patch, cv2.COLOR_BGR2RGB))
             buffered = io.BytesIO()
             patch_pil.save(buffered, format="PNG")
@@ -75,6 +71,7 @@ class PlantPhotoService:
             patch_b64_list.append(patch_b64)
 
         return patch_b64_list
+
 
 
     def _call_kindwise_api_with_files(self, patches_base64):
