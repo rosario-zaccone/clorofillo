@@ -21,29 +21,9 @@ class Utilities:
         return base64_str
 
     @staticmethod
-    def angle_to_percent (angle) :
-        if angle > 180 or angle < 0 :
-            return False
-        start = 4
-        end = 12.5
-        ratio = (end - start)/180
-
-        angle_as_percent = angle * ratio
-
-        return start + angle_as_percent
+    def angle_to_pulsewidth(angle):
+        return 500 + (angle / 180.0) * 2000 
     
-    @staticmethod
-    def is_insect_shape(contour, min_area=30, max_area=500, min_circularity=0.4):
-        area = cv2.contourArea(contour)
-        if area < min_area or area > max_area:
-            return False
-        perimeter = cv2.arcLength(contour, True)
-        if perimeter == 0:
-            return False
-        circularity = 4 * np.pi * (area / (perimeter * perimeter))
-        if circularity < min_circularity or circularity > 1.2:
-            return False
-        return True
     
     @staticmethod
     def show_base64_images(base64_images):

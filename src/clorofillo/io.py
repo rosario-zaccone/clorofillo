@@ -17,14 +17,20 @@ import time
 from clorofillo.business.utilities import Utilities
 from clorofillo.business.plant_photo_service import PlantPhotoService
 from picamzero import Camera
+import pigpio
 
 GPIO.setmode(GPIO.BCM)
 SERVO_PIN = 17
-GPIO.setup(SERVO_PIN, GPIO.OUT)
-pwm = GPIO.PWM(SERVO_PIN, 50)
+
+pi = pigpio.pi()
+
 
 
 def main():
+    if not pi.connected:
+        print("Errore: pigpiod non è attivo. Avvialo con 'sudo pigpiod'")
+        return
+    
     # il db deve avere gia dentro i tre pot e le loro configurazioni di base
     engine = create_engine('sqlite:///data/db.sqlite', echo=False, future=True)
     SessionLocal = sessionmaker(bind=engine)
@@ -32,8 +38,10 @@ def main():
     repo = PlantPotRepository(session)
     photo_repo = PlantPhotoRepository(session)
     service = PlantPhotoService(photo_repo, Camera())
-    pwm.start(Utilities.angle_to_percent(0))  # Posizione iniziale
+
+    pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(0))
     time.sleep(1)
+
     last_day = None
     
     try:
@@ -61,43 +69,41 @@ def main():
             #Se si è nell'ora di scatto scatta la foto e rimuove l'ora dalle ore di scatto
             if now in hours_one:
                 hours_one.pop(0)
-                pwm.ChangeDutyCycle(Utilities.angle_to_percent(0))
+                pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(0))
                 service.timelapse_shot(1, datetime.now())
                 time.sleep(2)
 
             if now in hours_two:
                 hours_two.pop(0)
-                pwm.ChangeDutyCycle(Utilities.angle_to_percent(90))
+                pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(90))
                 service.timelapse_shot(1, datetime.now())
                 time.sleep(2)
 
             if now in hours_three:
                 hours_three.pop(0)
-                pwm.ChangeDutyCycle(Utilities.angle_to_percent(180))
+                pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(180))
                 service.timelapse_shot(1, datetime.now())
                 time.sleep(2)
 
             # Insect detection
-            '''
-            pwm.ChangeDutyCycle(Utilities.angle_to_percent(0))
+            pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(0))
             service.insect_shot(1, datetime.now())
-            time.sleep(3)
+            time.sleep(insect_freq)
 
-            pwm.ChangeDutyCycle(Utilities.angle_to_percent(90))
+            pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(90))
             service.insect_shot(2, datetime.now())
-            time.sleep(3)
+            time.sleep(insect_freq)
 
-            pwm.ChangeDutyCycle(Utilities.angle_to_percent(180))
+            pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(180))
             service.insect_shot(3, datetime.now())
-            time.sleep(3)
-            '''
+            time.sleep(insect_freq)
 
     except KeyboardInterrupt:
         print("Interrotto dall'utente.")
 
     finally:
-        pwm.stop()
-        GPIO.cleanup()
+        pi.set_servo_pulsewidth(SERVO_PIN, 0)
+        pi.stop()
         session.close()
         print("Pulizia completata.")
 

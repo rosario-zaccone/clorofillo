@@ -56,7 +56,7 @@ class Configuration:
     def insect_freq(self, value):
         if not isinstance(value, int):
             raise ValueError("Insect frequency must be an integer.")
-        if not (5 <= value <= 15):
+        if not (6 <= value <= 18):
             raise ValueError("Insect frequency must be between 3 and 12 shots per minute.")
         self._insect_freq = value
 
