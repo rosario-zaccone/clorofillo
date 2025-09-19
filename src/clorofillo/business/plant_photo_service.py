@@ -118,6 +118,7 @@ class PlantPhotoService:
                         photo = PlantPhoto(timestamp, True, output_path)
                         self._repository.insert(photo.to_orm(pot_id))
                     i = i + 1
+                    self._repository.session.commit()
             os.remove(before_img)
         os.rename(after_img, before_img)
     
