@@ -24,7 +24,7 @@ SERVO_PIN = 17
 
 pi = pigpio.pi()
 
-
+# add possibility to disable insect detection
 
 def main():
     if not pi.connected:

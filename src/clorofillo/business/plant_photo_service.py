@@ -25,55 +25,33 @@ class PlantPhotoService:
         return self._repository
 
     def _detect_insect_patches_base64(self, before_path, after_path, save_patches=True):
-        PATCH_MIN_WIDTH = int(os.getenv("PATCH_MIN_WIDTH", 60))
-        PATCH_MIN_HEIGHT = int(os.getenv("PATCH_MIN_HEIGHT", 60))
-        PATCH_MAX_WIDTH = int(os.getenv("PATCH_MAX_WIDTH", 9999))
-        PATCH_MAX_HEIGHT = int(os.getenv("PATCH_MAX_HEIGHT", 9999))
-        COLOR_DIFF_THRESH = int(os.getenv("COLOR_DIFF_THRESH", 35))
-        BLUR_KERNEL_SIZE = int(os.getenv("BLUR_KERNEL_SIZE", 5))
-        MORPH_KERNEL_SIZE = int(os.getenv("MORPH_KERNEL_SIZE", 3))
-        MORPH_DILATE_ITER = int(os.getenv("MORPH_DILATE_ITER", 2))
+        PATCH_MIN_WIDTH = int(os.getenv("PATCH_MIN_WIDTH", 20))
+        PATCH_MIN_HEIGHT = int(os.getenv("PATCH_MIN_HEIGHT", 20))
+        PATCH_MAX_WIDTH = int(os.getenv("PATCH_MAX_WIDTH", 300))
+        PATCH_MAX_HEIGHT = int(os.getenv("PATCH_MAX_HEIGHT", 300))
+        COLOR_DIFF_THRESH = int(os.getenv("COLOR_DIFF_THRESH", 30))
 
         if not os.path.exists(before_path) or not os.path.exists(after_path):
             return []
 
         before = cv2.imread(before_path)
         after = cv2.imread(after_path)
+
         if before is None or after is None:
             return []
 
-        orb = cv2.ORB_create(1000)
-        kp1, des1 = orb.detectAndCompute(before, None)
-        kp2, des2 = orb.detectAndCompute(after, None)
-        if des1 is None or des2 is None:
+        if before.shape != after.shape:
             return []
 
-        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-        matches = sorted(bf.match(des1, des2), key=lambda x: x.distance)
-        if len(matches) < 4:
-            return []
+        diff = cv2.absdiff(before, after)
+        diff_gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(diff_gray, COLOR_DIFF_THRESH, 255, cv2.THRESH_BINARY)
 
-        src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1,1,2)
-        dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1,1,2)
-        M, _ = cv2.findHomography(dst_pts, src_pts, cv2.RANSAC, 4.0)
-        aligned_after = cv2.warpPerspective(after, M, (before.shape[1], before.shape[0]))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        cleaned = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+        cleaned = cv2.dilate(cleaned, kernel, iterations=2)
 
-        blur_ksize = (BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE)
-        morph_kernel = np.ones((MORPH_KERNEL_SIZE, MORPH_KERNEL_SIZE), np.uint8)
-
-        before_blur = cv2.GaussianBlur(before, blur_ksize, 0)
-        after_blur = cv2.GaussianBlur(aligned_after, blur_ksize, 0)
-
-        lab_before = cv2.cvtColor(before_blur, cv2.COLOR_BGR2LAB)
-        lab_after = cv2.cvtColor(after_blur, cv2.COLOR_BGR2LAB)
-        diff = cv2.absdiff(lab_before, lab_after)
-        dist = np.sqrt(np.sum(np.square(diff.astype(np.float32)), axis=2)).astype(np.uint8)
-
-        _, mask = cv2.threshold(dist, COLOR_DIFF_THRESH, 255, cv2.THRESH_BINARY)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, morph_kernel)
-        mask = cv2.dilate(mask, None, iterations=MORPH_DILATE_ITER)
-
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(cleaned, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         if save_patches:
             os.makedirs("data/photos/test/patch", exist_ok=True)
@@ -82,26 +60,24 @@ class PlantPhotoService:
         i = 0
         for cnt in contours:
             x, y, w, h = cv2.boundingRect(cnt)
-
-            if w < PATCH_MIN_WIDTH or h < PATCH_MIN_HEIGHT:
-                continue
-            if w > PATCH_MAX_WIDTH or h > PATCH_MAX_HEIGHT:
+            if not (PATCH_MIN_WIDTH <= w <= PATCH_MAX_WIDTH and PATCH_MIN_HEIGHT <= h <= PATCH_MAX_HEIGHT):
                 continue
 
-            patch = aligned_after[y:y+h, x:x+w]
-            patch_gray = cv2.cvtColor(patch, cv2.COLOR_BGR2GRAY)
-            if patch_gray.std() < 10:
+            patch_before = before[y:y+h, x:x+w]
+            patch_after = after[y:y+h, x:x+w]
+
+            if cv2.cvtColor(patch_after, cv2.COLOR_BGR2GRAY).std() < 10:
                 continue
 
-            _, buffer = cv2.imencode('.jpg', patch)
-            b64 = base64.b64encode(buffer).decode('utf-8')
-            patches_b64.append(b64)
+            _, buf_after = cv2.imencode('.jpg', patch_after)
+            b64_after = base64.b64encode(buf_after).decode('utf-8')
+            patches_b64.append(b64_after)
 
             if save_patches:
-                with open(f"data/photos/test/patch/patch_{i}.jpg", "wb") as f:
-                    f.write(base64.b64decode(b64))
-
-            i += 1
+                path_base = f"data/photos/test/patch/patch_{i}"
+                cv2.imwrite(f"{path_base}_before.jpg", patch_before)
+                cv2.imwrite(f"{path_base}_after.jpg", patch_after)
+                i += 1
 
         return patches_b64
 
@@ -140,7 +116,7 @@ class PlantPhotoService:
         after_img = f"data/photos/maybe_insect/after_{pot_id}.jpg"
         self._camera.take_photo(after_img)
         if os.path.isfile(before_img):
-            patches_b64 = self._detect_insect_patches_base64(before_img, after_img, False)
+            patches_b64 = self._detect_insect_patches_base64(before_img, after_img, True)
             if patches_b64:
                 i = 0
                 for patch in patches_b64:
