@@ -18,6 +18,13 @@ from clorofillo.business.utilities import Utilities
 from clorofillo.business.plant_photo_service import PlantPhotoService
 from picamzero import Camera
 import pigpio
+from gpiozero import PWMLED, MCP3008
+from time import sleep
+
+humidity_one = MCP3008(0) # read with humidity_one.value()
+#humidity_two = MCP3008(1)
+#humidity_three = MCP3008(2)
+#0.29 max humidiy, 0.82 min umidity
 
 GPIO.setmode(GPIO.BCM)
 SERVO_PIN = 17
@@ -26,7 +33,11 @@ pi = pigpio.pi()
 
 # add possibility to disable insect detection
 
+
 def main():
+    while (True):
+        pass
+    '''
     if not pi.connected:
         print("Errore: pigpiod non è attivo. Avvialo con 'sudo pigpiod'")
         return
@@ -39,6 +50,8 @@ def main():
     photo_repo = PlantPhotoRepository(session)
     service = PlantPhotoService(photo_repo, Camera())
 
+
+    
     pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(0))
     time.sleep(1)
 
@@ -93,11 +106,11 @@ def main():
             pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(90))
             service.insect_shot(2, datetime.now())
             time.sleep(insect_freq)
-            '''
-            pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(180))
-            service.insect_shot(3, datetime.now())
-            time.sleep(insect_freq)
-            '''
+            
+            #pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(180))
+            #service.insect_shot(3, datetime.now())
+            #time.sleep(insect_freq)
+            
 
     except KeyboardInterrupt:
         print("Interrotto dall'utente.")
@@ -107,7 +120,7 @@ def main():
         pi.stop()
         session.close()
         print("Pulizia completata.")
-
+    '''
     
 
 if __name__ == "__main__":

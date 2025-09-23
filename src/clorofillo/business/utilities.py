@@ -45,5 +45,9 @@ class Utilities:
         while len(hours) < shot_freq:
             hours.append(hours[-1] + unit)
         return hours
+    
+    @staticmethod
+    def map_humidity(value):
+        pass
 
     
