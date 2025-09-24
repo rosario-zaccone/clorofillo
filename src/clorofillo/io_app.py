@@ -28,6 +28,10 @@ humidity_one = MCP3008(0) # read with humidity_one.value()
 
 GPIO.setmode(GPIO.BCM)
 SERVO_PIN = 17
+PUMP_ONE_PIN = 4
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(PUMP_ONE_PIN, GPIO.OUT)
 
 pi = pigpio.pi()
 
@@ -35,8 +39,16 @@ pi = pigpio.pi()
 
 
 def main():
+    # remember to shut down camera ops when watering (interferenze fra servo e pompe)
+    # setta la cofnigurazione dalla repo, se devi innaffiare innaffia e non fare camera, altrimenti fai camera ops
     while (True):
-        pass
+        val = humidity_one.value
+        print(val)
+        if (val > 0.60):
+            GPIO.output(PUMP_ONE_PIN, GPIO.LOW) # do a watering function, more accurate
+        else:
+            GPIO.output(PUMP_ONE_PIN, GPIO.HIGH) # RELAY shut down at low
+        time.sleep(1)
     '''
     if not pi.connected:
         print("Errore: pigpiod non è attivo. Avvialo con 'sudo pigpiod'")
