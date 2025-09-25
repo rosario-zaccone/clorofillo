@@ -1,39 +1,55 @@
-import socket
-import subprocess
-import re
+import sys
+sys.path.append('/usr/lib/python3/dist-packages')
+import cv2
+import sys
+import RPi.GPIO as GPIO
+import time
+from clorofillo.business.utilities import Utilities
+from picamzero import Camera
+import pigpio
+from gpiozero import PWMLED, MCP3008
+from time import sleep
 
-# Funzione per ottenere l'indirizzo MAC Bluetooth
-def get_bluetooth_mac():
-    result = subprocess.run(["hciconfig"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output = result.stdout.decode("utf-8")
-    match = re.search(r"BD Address\s*[:=]\s*([0-9A-F:]{17})", output)
-    if match:
-        mac_address = match.group(1)
-        return mac_address
-    else:
-        raise ValueError("Indirizzo MAC Bluetooth non trovato")
+GPIO.setmode(GPIO.BCM)
+SERVO_PIN = 17
+pi = pigpio.pi()
 
-# Ottieni l'indirizzo MAC
-bt_addr = get_bluetooth_mac()
-print(bt_addr)
-# Crea socket Bluetooth RFCOMM
-server_sock = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
 
-# Bind al MAC e canale 3
-server_sock.bind((bt_addr, 3))
+def main():
+    # take photos
+    if not pi.connected:
+        print("Errore: pigpiod non è attivo. Avvialo con 'sudo pigpiod'")
+        return
+    cam = Camera()
 
-# Metti in ascolto
-server_sock.listen(1)
+    for i in range(0, 180):
+        pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(i))
+        cam.take_photo(f"data/calibration/{i}_.jpg")
 
-print("In attesa di connessione Bluetooth sul canale 3...")
+    pi.stop()
 
-client_sock, client_info = server_sock.accept()
-print(f"Connesso a {client_info}")
+    # detection
+    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+    aruco_params = cv2.aruco.DetectorParameters()
+    detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
 
-# Ricevi dati (massimo 1024 byte)
-data = client_sock.recv(1024).decode()
-print(f"Dati ricevuti: {data}")
+    for i in range(90, 140):
+        image_path = f"data/calibration/{i}_.jpg"
+        image = cv2.imread(image_path)
 
-# Chiudi connessioni
-client_sock.close()
-server_sock.close()
+        corners, ids, _ = detector.detectMarkers(image)
+        if ids is not None:
+            for marker_corners, marker_id in zip(corners, ids.flatten()):
+                marker_corners = marker_corners.reshape((4, 2))
+                top_left, top_right, bottom_right, bottom_left = marker_corners
+                cX = int((top_left[0] + bottom_right[0]) / 2.0)
+                image_center_x = image.shape[1] // 2
+                tolerance = image.shape[1] * 0.01 
+                is_centered = abs(cX - image_center_x) <= tolerance
+                print(f"ID rilevato: {marker_id}, angolo: {i}")
+                if is_centered:
+                    print(f"OK, angolo {i}")
+                    break
+
+if __name__ == "__main__":
+    main()

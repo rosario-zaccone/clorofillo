@@ -44,10 +44,10 @@ def main():
     while (True):
         val = humidity_one.value
         print(val)
-        if (val > 0.60):
+        if (val > 0.90):
             GPIO.output(PUMP_ONE_PIN, GPIO.LOW) # do a watering function, more accurate
         else:
-            GPIO.output(PUMP_ONE_PIN, GPIO.HIGH) # RELAY shut down at low
+            GPIO.output(PUMP_ONE_PIN, GPIO.HIGH) # RELAY shut down at high
         time.sleep(1)
     '''
     if not pi.connected:
