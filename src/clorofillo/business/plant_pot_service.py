@@ -36,9 +36,9 @@ class PlantPotService:
 
     def calibrate(self, camera, servo, servo_pin, conf_repo):
          # take photos
-        for i in range(0, 181, 10):
-            servo.set_servo_pulsewidth(servo_pin, Utilities.angle_to_pulsewidth(i))
-            camera.take_photo(f"data/calibration/{i}_.jpg")
+        #for i in range(0, 181, 10):
+        #    servo.set_servo_pulsewidth(servo_pin, Utilities.angle_to_pulsewidth(i))
+        #    camera.take_photo(f"data/calibration/{i}_.jpg")
 
         # detection
         aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
@@ -71,6 +71,7 @@ class PlantPotService:
         for i in range(1, 4):
             pot_orm = self._repository.get_by_id(i)
             pot = PlantPot.from_orm(pot_orm)
+            print(i, pot)
             conf_id = pot.configuration.id
             conf = pot.configuration
             conf.position = angles.get(i)
