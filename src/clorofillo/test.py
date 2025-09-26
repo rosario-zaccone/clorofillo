@@ -23,6 +23,7 @@ def main():
     cam = Camera()
 
     for i in range(0, 180):
+
         pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(i))
         cam.take_photo(f"data/calibration/{i}_.jpg")
 
@@ -46,9 +47,8 @@ def main():
                 image_center_x = image.shape[1] // 2
                 tolerance = image.shape[1] * 0.01 
                 is_centered = abs(cX - image_center_x) <= tolerance
-                print(f"ID rilevato: {marker_id}, angolo: {i}")
                 if is_centered:
-                    print(f"OK, angolo {i}")
+                    print(f"ID rilevato: {marker_id}, angolo: {i}")
                     break
 
 if __name__ == "__main__":

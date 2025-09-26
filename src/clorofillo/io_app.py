@@ -1,25 +1,36 @@
 import sys
 sys.path.append('/usr/lib/python3/dist-packages')
+
 import os
-from datetime import datetime
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from clorofillo.persistence.orm_models import Base
-from clorofillo.persistence.plant_pot_repository import PlantPotRepository
-from clorofillo.persistence.plant_photo_repository import PlantPhotoRepository
-from clorofillo.model.plant_pot import PlantPot
-from clorofillo.model.configuration import Configuration
-from clorofillo.model.measurement import Measurement
-from clorofillo.model.plant_photo import PlantPhoto
-from clorofillo.business.plant_pot_service import PlantPotService
-import RPi.GPIO as GPIO
 import time
-from clorofillo.business.utilities import Utilities
-from clorofillo.business.plant_photo_service import PlantPhotoService
-from picamzero import Camera
+from datetime import datetime
+from dotenv import load_dotenv
+
+import RPi.GPIO as GPIO
 import pigpio
 from gpiozero import PWMLED, MCP3008
-from time import sleep
+from picamzero import Camera
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
+
+from clorofillo.persistence.orm_models import Base
+from clorofillo.persistence.configuration_repository import ConfigurationRepository
+from clorofillo.persistence.plant_pot_repository import PlantPotRepository
+from clorofillo.persistence.plant_photo_repository import PlantPhotoRepository
+
+from clorofillo.model.configuration import Configuration
+from clorofillo.model.plant_pot import PlantPot
+from clorofillo.model.measurement import Measurement
+from clorofillo.model.plant_photo import PlantPhoto
+
+from clorofillo.business.utilities import Utilities
+from clorofillo.business.plant_pot_service import PlantPotService
+from clorofillo.business.plant_photo_service import PlantPhotoService
+
 
 humidity_one = MCP3008(0) # read with humidity_one.value()
 #humidity_two = MCP3008(1)
@@ -36,11 +47,26 @@ GPIO.setup(PUMP_ONE_PIN, GPIO.OUT)
 pi = pigpio.pi()
 
 # add possibility to disable insect detection
+load_dotenv()
+
+engine = create_engine('sqlite:///data/db.sqlite', echo=False, future=True)
+SessionLocal = sessionmaker(bind=engine)
+session = SessionLocal()
+conf_repository = ConfigurationRepository(session)
+pot_repository = PlantPotRepository(session)
+pot_service = PlantPotService(pot_repository)
 
 
 def main():
     # remember to shut down camera ops when watering (interferenze fra servo e pompe)
     # setta la cofnigurazione dalla repo, se devi innaffiare innaffia e non fare camera, altrimenti fai camera ops
+    while (True):
+        a = input("calibrate?")
+        if (a == "yes"):
+            pot_service.calibrate(Camera(), pi, SERVO_PIN, conf_repository)
+    
+    
+    '''
     while (True):
         val = humidity_one.value
         print(val)
@@ -49,6 +75,8 @@ def main():
         else:
             GPIO.output(PUMP_ONE_PIN, GPIO.HIGH) # RELAY shut down at high
         time.sleep(1)
+    '''
+
     '''
     if not pi.connected:
         print("Errore: pigpiod non è attivo. Avvialo con 'sudo pigpiod'")

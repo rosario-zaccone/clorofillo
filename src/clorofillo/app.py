@@ -31,15 +31,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Informa l'utente su come usare il bot."""
     await update.message.reply_text("TODO")
 
 
 async def get_timelapse(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Restituisce un video timelapse"""
+    """Return a timelapse"""
     try:
         if len(context.args) != 4:
-            raise ValueError("Numero errato di argomenti")
+            raise ValueError("Wrong arguments number")
         
         pot_id = context.args[0]
         from_date = context.args[1].split("-")
@@ -47,31 +46,31 @@ async def get_timelapse(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         fps = int(context.args[3])
         pot_orm = pot_repository.get_by_id(pot_id)
         if pot_orm is None:
-            raise ValueError("Id non esistente")
+            raise ValueError("Id doesn't exist")
         output_path = "data/timelapses/timelapse_" + pot_id + ".mp4"
         pot_service.timelapse(pot_id, datetime(int(from_date[0]), int(from_date[1]), int(from_date[2])), datetime(int(to_date[0]), int(to_date[1]), int(to_date[2])), fps, output_path)
 
-        await update.message.reply_text("🎬 Ecco il tuo video timelapse!")
+        await update.message.reply_text("🎬 Your timelapse is ready!")
         await update.message.reply_video(
             video=open(output_path, "rb"),
-            caption="🌱 Crescita della tua pianta in timelapse"
+            caption="🌱 Plant growth in timelapse"
         )
 
     except ValueError as ve:
-        await update.message.reply_text(f"Errore: {str(ve)}")
+        await update.message.reply_text(f"Error: {str(ve)}")
     except Exception as e:
-        await update.message.reply_text(f"Errore imprevisto: {e}")
+        await update.message.reply_text(f"Error: {e}")
 
 async def get_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Restituisce la configurazione di un vaso specifico."""
+    """Return a plant pot configuration"""
     try:
         if len(context.args) != 1:
-            raise ValueError("Numero errato di argomenti")
+            raise ValueError("Wrong arguments number")
         
         pot_id = context.args[0]
         pot_orm = pot_repository.get_by_id(pot_id)
         if pot_orm is None:
-            raise ValueError("Id non esistente")
+            raise ValueError("Id doesn't exist")
         pot = PlantPot.from_orm(pot_orm)
         response = pot.configuration
         await update.message.reply_text(
@@ -87,15 +86,15 @@ async def get_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         )
 
     except ValueError as ve:
-        await update.message.reply_text(f"Errore: {str(ve)}")
+        await update.message.reply_text(f"Error: {str(ve)}")
     except Exception as e:
-        await update.message.reply_text(f"Errore imprevisto: {e}")
+        await update.message.reply_text(f"Error: {e}")
     
 async def set_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Aggiorna la configurazione di un vaso specifico."""
+    """Update the plant pot configuration"""
     try:
         if len(context.args) != 6:
-            raise ValueError("Numero errato di argomenti")
+            raise ValueError("Wrong arguments number")
         id_str, threshold_str, watering_mode_str, shot_freq_str, insect_freq_str, position_str = context.args
 
         pot_id = int(id_str)
@@ -108,7 +107,7 @@ async def set_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         # prendo il vaso con id pot_id (checkko se esiste), se eesiste prendo la sua configuratione e l aggiorno
         pot_orm = pot_repository.get_by_id(pot_id)
         if pot_orm is None:
-            raise ValueError("Id non esistente")
+            raise ValueError("Id doesn't exist")
         pot = PlantPot.from_orm(pot_orm)
         conf_id = pot.configuration.id
 
@@ -116,12 +115,12 @@ async def set_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         configuration = Configuration(threshold, watering_mode, shot_freq, insect_freq, position)
         conf_repository.update(conf_id, configuration.to_orm())
         conf_repository.session.commit()
-        await update.message.reply_text(f"Configurazione del vaso #{pot_id} aggiornata con successo!")
+        await update.message.reply_text(f"COnfiguration of pot #{pot_id} updated!")
 
     except ValueError as ve:
-        await update.message.reply_text(f"Errore: {str(ve)}")
+        await update.message.reply_text(f"Error: {str(ve)}")
     except Exception as e:
-        await update.message.reply_text(f"Errore imprevisto: {e}")
+        await update.message.reply_text(f"Error: {e}")
 
 
 def main() -> None:

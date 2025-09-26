@@ -16,7 +16,7 @@ class PlantPhotoService:
     def __init__(self, repository, camera, api_key=None, api_url=None):
         load_dotenv()
         self._repository = repository
-        self._camera = camera
+        self.camera = camera
         self._API_URL = api_url or "https://insect.kindwise.com/api/v1/identification"
         self._API_KEY = api_key or os.getenv("API_KEY")
 
@@ -114,7 +114,7 @@ class PlantPhotoService:
         readable = str(timestamp).replace(" ", "_")
         before_img = f"data/photos/maybe_insect/before_{pot_id}.jpg"
         after_img = f"data/photos/maybe_insect/after_{pot_id}.jpg"
-        self._camera.take_photo(after_img)
+        self.camera.take_photo(after_img)
         if os.path.isfile(before_img):
             patches_b64 = self._detect_insect_patches_base64(before_img, after_img, True)
             if patches_b64:
@@ -135,7 +135,7 @@ class PlantPhotoService:
     def timelapse_shot(self, pot_id, timestamp): 
         readable = str(timestamp).replace(" ", "_")
         path = f"data/photos/timelapse/{pot_id}_{readable}.jpg"
-        self._camera.take_photo(path)
+        self.camera.take_photo(path)
         photo = PlantPhoto(timestamp, False, path)
         self._repository.insert(photo.to_orm(pot_id))
         self._repository.session.commit()
