@@ -11,6 +11,10 @@ class Configuration:
         self.position = position
 
     @property
+    def id(self):
+        return self._id
+    
+    @property
     def threshold(self):
         return self._threshold
     
@@ -53,7 +57,7 @@ class Configuration:
     def insect_freq(self, value):
         if not isinstance(value, int):
             raise ValueError("Insect frequency must be an integer.")
-        if not (6 <= value <= 18):
+        if not (3 <= value <= 18):
             raise ValueError("Insect frequency must be between 3 and 12 shots per minute.")
         self._insect_freq = value
 

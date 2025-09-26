@@ -74,15 +74,15 @@ async def get_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             raise ValueError("Id non esistente")
         pot = PlantPot.from_orm(pot_orm)
         response = pot.configuration
-
         await update.message.reply_text(
             f"""🌿 *Configurazione del vaso #{id}* 🌿
 
-🔧 *Modalità irrigazione:* `{response.watering_mode}`
-💧 *Soglia umidità:* `{response.threshold}%`
-📸 *Frequenza timelapse:* `{response.shot_freq} scatti/giorno`
-🐛 *Frequenza rilevazione insetti:* `{response.insect_freq} scatti/minuto`
-""",
+        🔧 *Modalità irrigazione:* `{response.watering_mode}`
+        💧 *Soglia umidità:* `{response.threshold}%`
+        📸 *Frequenza timelapse:* `{response.shot_freq} scatti/giorno`
+        🐛 *Frequenza rilevazione insetti:* `{response.insect_freq} scatti/minuto`
+        📍 *Posizione:* `{response.position}°`
+        """,
             parse_mode="Markdown"
         )
 
@@ -94,15 +94,16 @@ async def get_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 async def set_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Aggiorna la configurazione di un vaso specifico."""
     try:
-        if len(context.args) != 5:
+        if len(context.args) != 6:
             raise ValueError("Numero errato di argomenti")
-        id_str, threshold_str, watering_mode_str, shot_freq_str, insect_freq_str = context.args
+        id_str, threshold_str, watering_mode_str, shot_freq_str, insect_freq_str, position_str = context.args
 
         pot_id = int(id_str)
         threshold = float(threshold_str)
         watering_mode = watering_mode_str.lower() in ['true', '1', 'yes']
         shot_freq = int(shot_freq_str)
         insect_freq = int(insect_freq_str)
+        position = int(position_str)
 
         # prendo il vaso con id pot_id (checkko se esiste), se eesiste prendo la sua configuratione e l aggiorno
         pot_orm = pot_repository.get_by_id(pot_id)
@@ -112,7 +113,7 @@ async def set_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         conf_id = pot.configuration.id
 
         # Domain object creation (and data validation)
-        configuration = Configuration(threshold, watering_mode, shot_freq, insect_freq)
+        configuration = Configuration(threshold, watering_mode, shot_freq, insect_freq, position)
         conf_repository.update(conf_id, configuration.to_orm())
         conf_repository.session.commit()
         await update.message.reply_text(f"Configurazione del vaso #{pot_id} aggiornata con successo!")

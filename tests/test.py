@@ -19,18 +19,18 @@ if src_path not in sys.path:
 
 def main():
     engine = create_engine('sqlite:///data/db.sqlite', echo=False, future=True)
-    #Base.metadata.create_all(engine)
+    Base.metadata.create_all(engine)
     SessionLocal = sessionmaker(bind=engine)
     session = SessionLocal()
 
     repo = PlantPotRepository(session)
     
-    '''
     config = Configuration(
         threshold=55.0,
         watering_mode=True,
         shot_freq=2,
-        insect_freq=5
+        insect_freq=5,
+        position = 88
     )
 
 
@@ -43,14 +43,14 @@ def main():
         photos=[]
     )
 
-    directory = '/home/rosario/Documents/computer_science/projects/clorofillo/data/photos/timelapse'
+    directory = 'data/photos/timelapse/'
 
 
     file_names = []
     for filename in os.listdir(directory):
         full_path = os.path.join(directory, filename)
-        if os.path.isfile(full_path) and filename[0] == "2":
-            file_names.append(filename)
+        if os.path.isfile(full_path) and filename[0] == "1":
+            file_names.append(directory + filename)
 
     for file in file_names:
         photo = PlantPhoto(datetime.strptime(file.split('_')[1].split('.')[0], "%Y%m%d"), False, file)
@@ -64,14 +64,13 @@ def main():
 
     print(f"PlantPot saved with id: {plant_pot_orm.id}")
     
-    loaded_orm = repo.get_by_id(2)
+    loaded_orm = repo.get_by_id(1)
     loaded_domain = PlantPot.from_orm(loaded_orm)
 
     print(loaded_domain)
 
-    '''
     service = PlantPotService(repo)
-    service.timelapse(2, datetime(2024,1,10), datetime(2024,10,14), 10, "pippo.mp4")
+    service.timelapse(1, datetime(2024,1,10), datetime(2024,10,14), 10, "pippo.mp4")
 
     
 
