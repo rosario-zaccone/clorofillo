@@ -27,6 +27,7 @@ class ConfigurationRepository(Repository):
         orm_obj.watering_mode = new_config.watering_mode
         orm_obj.shot_freq = new_config.shot_freq
         orm_obj.insect_freq = new_config.insect_freq
+        orm_obj.position = new_config.position
 
         self.session.commit()
         return orm_obj

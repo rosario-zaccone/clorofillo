@@ -7,47 +7,15 @@ class PlantPot:
     def __init__(self, id: int, size: float, plant: str, configuration: Configuration,
                  measurements: list[Measurement], photos: list[PlantPhoto]):
         self._id = id
-        self._size = size
-        self._plant = plant
-        self._configuration = configuration
-        self._measurements = measurements
-        self._photos = photos
+        self.size = size
+        self.plant = plant
+        self.configuration = configuration
+        self.measurements = measurements
+        self.photos = photos
 
     @property
     def id(self) -> int:
         return self._id
-
-    @property
-    def size(self) -> float:
-        return self._size
-
-    @size.setter
-    def size(self, value: float):
-        self._size = value
-
-    @property
-    def plant(self) -> str:
-        return self._plant
-
-    @plant.setter
-    def plant(self, value: str):
-        self._plant = value
-
-    @property
-    def configuration(self) -> Configuration:
-        return self._configuration
-
-    @configuration.setter
-    def configuration(self, value: Configuration):
-        self._configuration = value
-
-    @property
-    def measurements(self) -> list[Measurement]:
-        return self._measurements
-
-    @property
-    def photos(self) -> list[PlantPhoto]:
-        return self._photos
     
     def add_photo(self, photo: PlantPhoto):
         self.photos.append(photo)

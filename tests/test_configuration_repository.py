@@ -22,7 +22,8 @@ def test_insert_and_get_by_id(in_memory_session):
         threshold=60.0,
         watering_mode=True,
         shot_freq=3,
-        insect_freq=8
+        insect_freq=8,
+        position = 88
     )
 
     config_orm = config_domain.to_orm()
@@ -36,6 +37,7 @@ def test_insert_and_get_by_id(in_memory_session):
     assert loaded_domain.watering_mode is True
     assert loaded_domain.shot_freq == 3
     assert loaded_domain.insect_freq == 8
+    assert loaded_domain.position == 88
 
 def test_get_by_id_not_found(in_memory_session):
     repo = ConfigurationRepository(in_memory_session)

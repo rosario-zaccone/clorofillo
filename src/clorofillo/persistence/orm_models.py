@@ -14,6 +14,7 @@ class ConfigurationORM(Base):
     watering_mode = Column(Boolean, nullable=False)
     shot_freq = Column(Integer, nullable=False)
     insect_freq = Column(Integer, nullable=False)
+    position=Column(Integer, nullable=True)
     plant_pot = relationship("PlantPotORM", back_populates="configuration", uselist=False)
 
 class PlantPotORM(Base):

@@ -2,21 +2,18 @@ from clorofillo.persistence.orm_models import PlantPotORM
 from clorofillo.persistence.orm_models import ConfigurationORM 
 
 class Configuration:
-    def __init__(self, threshold: float, watering_mode: bool, shot_freq: int, insect_freq: int, id: int = None):
+    def __init__(self, threshold: float, watering_mode: bool, shot_freq: int, insect_freq: int, position: int, id: int = None):
         self._id = id
         self.threshold = threshold
         self.watering_mode = watering_mode
         self.shot_freq = shot_freq
         self.insect_freq = insect_freq
-
-    @property
-    def id(self):
-        return self._id
+        self.position = position
 
     @property
     def threshold(self):
         return self._threshold
-
+    
     @threshold.setter
     def threshold(self, value):
         if not isinstance(value, (float, int)):
@@ -29,7 +26,7 @@ class Configuration:
     @property
     def watering_mode(self):
         return self._watering_mode
-
+    
     @watering_mode.setter
     def watering_mode(self, value):
         if not isinstance(value, bool):
@@ -39,7 +36,7 @@ class Configuration:
     @property
     def shot_freq(self):
         return self._shot_freq
-
+    
     @shot_freq.setter
     def shot_freq(self, value):
         if not isinstance(value, int):
@@ -51,7 +48,7 @@ class Configuration:
     @property
     def insect_freq(self):
         return self._insect_freq
-
+    
     @insect_freq.setter
     def insect_freq(self, value):
         if not isinstance(value, int):
@@ -60,6 +57,16 @@ class Configuration:
             raise ValueError("Insect frequency must be between 3 and 12 shots per minute.")
         self._insect_freq = value
 
+    @property
+    def position(self):
+        return self._position
+
+    @position.setter
+    def position(self, value):
+        if value < 0 or value > 180:
+            raise ValueError("Invalid angle.")
+        self._position = value
+
     @staticmethod
     def from_orm(orm_obj):
         return Configuration(
@@ -67,6 +74,7 @@ class Configuration:
             watering_mode=orm_obj.watering_mode,
             shot_freq=orm_obj.shot_freq,
             insect_freq=orm_obj.insect_freq,
+            position = orm_obj.position,
             id=getattr(orm_obj, 'id', None)
         )
 
@@ -75,7 +83,8 @@ class Configuration:
             threshold=self.threshold,
             watering_mode=self.watering_mode,
             shot_freq=self.shot_freq,
-            insect_freq=self.insect_freq
+            insect_freq=self.insect_freq,
+            position = self.position
         )
 
         if self._id is not None:
@@ -88,5 +97,6 @@ class Configuration:
             f"threshold={self.threshold}, "
             f"watering_mode={self.watering_mode}, "
             f"shot_freq={self.shot_freq}, "
-            f"insect_freq={self.insect_freq})"
+            f"insect_freq={self.insect_freq},"
+            f"position={self.position})"
         )

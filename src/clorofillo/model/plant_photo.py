@@ -4,25 +4,14 @@ from clorofillo.persistence.orm_models import PlantPhotoORM
 class PlantPhoto:
     def __init__(self, timestamp: datetime, is_insect: bool, path: str, id: int = None):
         self._id = id
-        self._timestamp = timestamp
-        self._is_insect = is_insect
-        self._path = path
+        self.timestamp = timestamp
+        self.is_insect = is_insect
+        self.path = path
 
     @property
     def id(self):
         return self._id
-    
-    @property
-    def timestamp(self) -> datetime:
-        return self._timestamp
 
-    @property
-    def is_insect(self) -> bool:
-        return self._is_insect
-
-    @property
-    def path(self) -> str:
-        return self._path
 
     @staticmethod
     def from_orm(orm_obj):

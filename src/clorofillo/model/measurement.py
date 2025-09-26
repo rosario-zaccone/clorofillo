@@ -6,8 +6,8 @@ class Measurement:
         if not (0 <= soil_moisture <= 100):
             raise ValueError("soil_moisture must be between 0 and 100")
         self._id = id
-        self._timestamp = timestamp
-        self._soil_moisture = soil_moisture
+        self.timestamp = timestamp
+        self.soil_moisture = soil_moisture
 
     @property
     def id(self) -> int:
@@ -19,13 +19,6 @@ class Measurement:
             raise ValueError("id must be an integer or None.")
         self._id = value
 
-    @property
-    def timestamp(self) -> datetime:
-        return self._timestamp
-
-    @property
-    def soil_moisture(self) -> float:
-        return self._soil_moisture
 
     @staticmethod
     def from_orm(orm_obj):
