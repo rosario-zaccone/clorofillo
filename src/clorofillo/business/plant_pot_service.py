@@ -35,10 +35,10 @@ class PlantPotService:
         pass
 
     def calibrate(self, camera, servo, servo_pin, conf_repo):
-         # take photos
-        #for i in range(0, 181, 10):
-        #    servo.set_servo_pulsewidth(servo_pin, Utilities.angle_to_pulsewidth(i))
-        #    camera.take_photo(f"data/calibration/{i}_.jpg")
+        # take photos
+        for i in range(0, 181, 10):
+            servo.set_servo_pulsewidth(servo_pin, Utilities.angle_to_pulsewidth(i))
+            camera.take_photo(f"data/calibration/{i}_.jpg")
 
         # detection
         aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
@@ -63,10 +63,10 @@ class PlantPotService:
                 tolerance = image.shape[1] * 0.1 
                 is_centered = abs(cX - image_center_x) <= tolerance
                 if is_centered:
-                    print(f"ID rilevato: {marker_id}, angolo: {i}")
+                    print(f"ID detected: {marker_id}, angle: {i}")
                     angles[marker_id] = i
         if len(angles) != 3:
-            print("Failed, no enough pot detected")
+            raise Exception("Failed, no enough pot detected")
             return
         for i in range(1, 4):
             pot_orm = self._repository.get_by_id(i)
@@ -77,8 +77,6 @@ class PlantPotService:
             conf.position = angles.get(i)
             conf_repo.update(conf_id, conf.to_orm())
             conf_repo.session.commit()
-
-                #logica se fallisce
                         
 
 
