@@ -1,11 +1,8 @@
 from clorofillo.model.plant_pot import PlantPot, PlantPhoto
 from moviepy import ImageSequenceClip
 from clorofillo.persistence.plant_pot_repository import PlantPotRepository
-from picamzero import Camera
 from time import sleep
 from clorofillo.business.utilities import Utilities
-from clorofillo.persistence.configuration_repository import ConfigurationRepository
-from clorofillo.model.configuration import Configuration
 import cv2
 
 class PlantPotService:

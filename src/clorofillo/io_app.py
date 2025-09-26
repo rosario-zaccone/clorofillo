@@ -58,6 +58,26 @@ pot_service = PlantPotService(pot_repository)
 
 
 def main():
+    
+
+    # retrieve db data
+    # if button prssed, start calibration
+    # if humidity down, start irrigation
+    # if photo time, start photo 
+    # insect detect
+
+
+
+
+
+
+
+
+
+
+
+
+
     # remember to shut down camera ops when watering (interferenze fra servo e pompe)
     # setta la cofnigurazione dalla repo, se devi innaffiare innaffia e non fare camera, altrimenti fai camera ops
     while (True):

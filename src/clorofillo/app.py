@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# pylint: disable=unused-argument
-
 import logging
 import os
 
@@ -74,7 +71,7 @@ async def get_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         pot = PlantPot.from_orm(pot_orm)
         response = pot.configuration
         await update.message.reply_text(
-            f"""🌿 *Configurazione del vaso #{id}* 🌿
+            f"""🌿 *Configurazione del vaso #{pot_id}* 🌿
 
         🔧 *Modalità irrigazione:* `{response.watering_mode}`
         💧 *Soglia umidità:* `{response.threshold}%`
