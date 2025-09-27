@@ -13,37 +13,24 @@ from picamzero import Camera
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
-
-from clorofillo.persistence.orm_models import Base
 from clorofillo.persistence.configuration_repository import ConfigurationRepository
 from clorofillo.persistence.plant_pot_repository import PlantPotRepository
-from clorofillo.persistence.plant_photo_repository import PlantPhotoRepository
-
-from clorofillo.model.configuration import Configuration
 from clorofillo.model.plant_pot import PlantPot
-from clorofillo.model.measurement import Measurement
-from clorofillo.model.plant_photo import PlantPhoto
 
 from clorofillo.business.utilities import Utilities
 from clorofillo.business.plant_pot_service import PlantPotService
 from clorofillo.business.plant_photo_service import PlantPhotoService
 
 
-humidity_one = MCP3008(0) # read with humidity_one.value()
-#humidity_two = MCP3008(1)
-#humidity_three = MCP3008(2)
-#0.29 max humidiy, 0.82 min umidity
-
 GPIO.setmode(GPIO.BCM)
 SERVO_PIN = 17
 PUMP_ONE_PIN = 4
+PUMP_TWO_PIN = 4 # da cmabaire
+PUMP_THREE_PIN = 4 # da cambiare
+FLOW_RATE = 0.025 # litri al secondo
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(PUMP_ONE_PIN, GPIO.OUT)
-
 pi = pigpio.pi()
 
 # add possibility to disable insect detection
@@ -57,14 +44,63 @@ pot_repository = PlantPotRepository(session)
 pot_service = PlantPotService(pot_repository)
 
 
+def watering(pot, pump_pin, humidity_channel):
+    humidity = Utilities.map_humidity(MCP3008(humidity_channel).value)
+    print(f"Pot number {pot.id} has humidity {humidity}%")
+    '''
+    if (pot.configuration.watering_mode and humidity < pot.configuration.threshold):
+        GPIO.output(pump_pin, GPIO.LOW) # accendi pompa
+        irrigation_time = 0.15 * pot.size / FLOW_RATE
+        time.sleep(irrigation_time)
+        GPIO.output(pump_pin, GPIO.HIGH)
+        '''
+
+
+# before start the program
+# mkfifo /tmp/iot_pipe for the pipe
+# sudo pigpiod for the servo
+# install camera libraries
+# other things  TODO
+
+fifo_path = '/tmp/the_fifo'
+
 def main():
+    try:
+        while 1:
+            pot_one = PlantPot.from_orm(pot_repository.get_by_id(1))
+            pot_two = PlantPot.from_orm(pot_repository.get_by_id(2))
+            pot_three = PlantPot.from_orm(pot_repository.get_by_id(3))
+
+            # GESTIORE SERBAOTIO VUOTO
+
+            # IRRIGATION
+            water_level = int(MCP3008(3).value * 100)
+            if water_level > 20:
+                watering(pot_one, PUMP_ONE_PIN, 0)
+                watering(pot_two, PUMP_TWO_PIN, 1)
+                watering(pot_three, PUMP_THREE_PIN, 2)
+            else:
+                try:
+                    with open(fifo_path, 'w') as fifo_pipe:
+                        fifo_pipe.write('1')
+                        fifo_pipe.flush()
+                except Exception as e:
+                    print(f"Error while writing on pipe: {e}")
+                    time.sleep(1)
+    except KeyboardInterrupt:
+        print("Interrotto dall'utente.")
+    finally:
+        pi.set_servo_pulsewidth(SERVO_PIN, 0)
+        pi.stop()
+        session.close()
+        print("Pulizia completata.")
+
     
 
-    # retrieve db data
-    # if button prssed, start calibration
-    # if humidity down, start irrigation
-    # if photo time, start photo 
-    # insect detect
+if __name__ == "__main__":
+    main()
+
+# per ora, la frequenza di scatto insetto è uguale per tutti i vasi (prende la freq del vaso con id 1)
 
 
 
@@ -76,26 +112,6 @@ def main():
 
 
 
-
-
-    # remember to shut down camera ops when watering (interferenze fra servo e pompe)
-    # setta la cofnigurazione dalla repo, se devi innaffiare innaffia e non fare camera, altrimenti fai camera ops
-    while (True):
-        a = input("calibrate?")
-        if (a == "yes"):
-            pot_service.calibrate(Camera(), pi, SERVO_PIN, conf_repository)
-    
-    
-    '''
-    while (True):
-        val = humidity_one.value
-        print(val)
-        if (val > 0.90):
-            GPIO.output(PUMP_ONE_PIN, GPIO.LOW) # do a watering function, more accurate
-        else:
-            GPIO.output(PUMP_ONE_PIN, GPIO.HIGH) # RELAY shut down at high
-        time.sleep(1)
-    '''
 
     '''
     if not pi.connected:
@@ -169,21 +185,5 @@ def main():
             
             #pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(180))
             #service.insect_shot(3, datetime.now())
-            #time.sleep(insect_freq)
-            
-
-    except KeyboardInterrupt:
-        print("Interrotto dall'utente.")
-
-    finally:
-        pi.set_servo_pulsewidth(SERVO_PIN, 0)
-        pi.stop()
-        session.close()
-        print("Pulizia completata.")
+            #time.sleep(insect_freq)    
     '''
-    
-
-if __name__ == "__main__":
-    main()
-
-# per ora, la frequenza di scatto insetto è uguale per tutti i vasi (prende la freq del vaso con id 1)

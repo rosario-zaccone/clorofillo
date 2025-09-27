@@ -46,8 +46,14 @@ class Utilities:
             hours.append(hours[-1] + unit)
         return hours
     
+    #0.29 max humidiy, 0.82 min umidity
     @staticmethod
     def map_humidity(value):
-        pass
+        value = max(min(value, 0.82), 0.29)
+        mapped = (value - 0.29) * (0 - 100) / (0.82 - 0.29) + 100
+        return mapped
+
+        
+        
 
     

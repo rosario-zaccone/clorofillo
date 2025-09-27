@@ -57,8 +57,8 @@ class Configuration:
     def insect_freq(self, value):
         if not isinstance(value, int):
             raise ValueError("Insect frequency must be an integer.")
-        if not (3 <= value <= 18):
-            raise ValueError("Insect frequency must be between 3 and 12 shots per minute.")
+        if not (0 or 3 <= value <= 18):
+            raise ValueError("Insect frequency must be 0 or between 3 and 12 shots per minute.")
         self._insect_freq = value
 
     @property
