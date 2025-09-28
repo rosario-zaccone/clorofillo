@@ -53,6 +53,5 @@ class NotificationORM(Base):
     __tablename__ = 'notification'
     id = Column(Integer, primary_key=True, autoincrement=True)
     timestamp = Column(DateTime, nullable=False)
-    pot = Column(Integer, ForeignKey('plant_pot.id'), nullable=False)
+    is_notified = Column(Boolean, nullable=False)
     description = Column(String, nullable=False)
-    plant_pot = relationship("PlantPotORM")

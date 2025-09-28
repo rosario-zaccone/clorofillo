@@ -1,6 +1,8 @@
 import logging
 import os, time
-import asyncio
+import asyncio, redis
+from telegram.constants import ParseMode
+
 from datetime import datetime
 from dotenv import load_dotenv
 from telegram import Update
@@ -12,15 +14,35 @@ from sqlalchemy.orm import sessionmaker
 from clorofillo.model.configuration import Configuration
 from clorofillo.model.plant_pot import PlantPot
 from clorofillo.business.plant_pot_service import PlantPotService
-
+from clorofillo.persistence.notification_repository import NotificationRepository
+from clorofillo.model.plant_pot import PlantPot
+from clorofillo.model.notification import Notification
+from clorofillo.persistence.orm_models import *
 load_dotenv()
 
 engine = create_engine('sqlite:///data/db.sqlite', echo=False, future=True)
+
+
+
+
+from sqlalchemy import text
+
+# Step 1: Drop the notification table
+with engine.connect() as connection:
+    connection.execute(text("DROP TABLE IF EXISTS notification;"))
+
+# Step 2: Recreate the notification table
+NotificationORM.__table__.create(engine)
+
+
+
+
 SessionLocal = sessionmaker(bind=engine)
 session = SessionLocal()
 conf_repository = ConfigurationRepository(session)
 pot_repository = PlantPotRepository(session)
 pot_service = PlantPotService(pot_repository)
+notif_repository = NotificationRepository(session)
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,13 +63,37 @@ def authorized_only(func):
         return await func(update, context, *args, **kwargs)
     return wrapper
 
-import os
+import asyncio
+from telegram import Bot
+from clorofillo.persistence.notification_repository import NotificationRepository
+from clorofillo.model.notification import Notification
+
+import redis
+import asyncio
+from telegram.constants import ParseMode
+
+async def send_telegram_message(bot, chat_id: int, message: str):
+    try:
+        await bot.send_message(chat_id=chat_id, text=message, parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        print(f"Failed to send message: {e}")
+
+import redis
 import asyncio
 
 async def notify_manager(application):
-    pass
-    #read from sqlite e send message telegram
-
+    r = redis.Redis(host='localhost', port=6379, db=0)
+    loop = asyncio.get_event_loop()
+    while True:
+        message = await loop.run_in_executor(None, r.lpop, "notifications")
+        if message:
+            value = int(message)
+            if value == 1:
+                message_text = "⚠️ Empty tank!"
+                for chat_id in AUTHORIZED_CHAT_IDS:
+                    await send_telegram_message(application.bot, chat_id, message_text)
+        
+        await asyncio.sleep(0.1) 
 
 
 
@@ -133,6 +179,7 @@ async def set_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 @authorized_only
 async def calibrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    
     await update.message.reply_text("Calibration not implemented.")
 
 async def post_init(application: Application):

@@ -2,7 +2,7 @@ import sys
 sys.path.append('/usr/lib/python3/dist-packages')
 
 import os
-import time
+import time, redis
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -15,8 +15,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from clorofillo.persistence.configuration_repository import ConfigurationRepository
 from clorofillo.persistence.plant_pot_repository import PlantPotRepository
+from clorofillo.persistence.notification_repository import NotificationRepository
 from clorofillo.model.plant_pot import PlantPot
-
+from clorofillo.model.notification import Notification
 from clorofillo.business.utilities import Utilities
 from clorofillo.business.plant_pot_service import PlantPotService
 from clorofillo.business.plant_photo_service import PlantPhotoService
@@ -42,7 +43,7 @@ session = SessionLocal()
 conf_repository = ConfigurationRepository(session)
 pot_repository = PlantPotRepository(session)
 pot_service = PlantPotService(pot_repository)
-
+r = redis.Redis(host="localhost", port=6379, db=0)
 
 def watering(pot, pump_pin, humidity_channel):
     humidity = Utilities.map_humidity(MCP3008(humidity_channel).value)
@@ -57,7 +58,7 @@ def watering(pot, pump_pin, humidity_channel):
 
 
 # before start the program
-# sudo pigpiod for the servo
+# sudo pigpiod for the servo, redis-server for redis communication
 # install camera libraries
 # other things  TODO
 def main():
@@ -73,9 +74,9 @@ def main():
                 watering(pot_one, PUMP_ONE_PIN, 0)
                 watering(pot_two, PUMP_TWO_PIN, 1)
                 watering(pot_three, PUMP_THREE_PIN, 2)
-            elif time.time() - start > 10:
+            elif time.time() - start > 3600: # Limit to one notification at hour
                 start = time.time()
-                pass #write ntoofy in the db
+                r.rpush("notifications", 1)
     except KeyboardInterrupt:
         print("Interrotto dall'utente.")
     finally:
