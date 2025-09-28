@@ -44,28 +44,9 @@ def authorized_only(func):
 import os
 import asyncio
 
-PIPE_PATH = '/tmp/the_fifo'
-
-async def pipe_listener(application):
-    if not os.path.exists(PIPE_PATH):
-        os.mkfifo(PIPE_PATH)
-
-    while True:
-        try:
-            with open(PIPE_PATH, 'r') as pipe:
-                while True:
-                    line = await asyncio.to_thread(pipe.readline)
-                    if not line:
-                        break
-                    msg = line.strip()
-                    if msg == '1':
-                        start = time.time()
-                        if AUTHORIZED_CHAT_IDS:
-                            for chat_id in AUTHORIZED_CHAT_IDS:
-                                await application.bot.send_message(chat_id=chat_id, text="💧 Warning! Water level too low!")
-        except Exception as e:
-            print(f"Error pipe: {e}")
-        await asyncio.sleep(1)
+async def notify_manager(application):
+    pass
+    #read from sqlite e send message telegram
 
 
 
@@ -155,7 +136,7 @@ async def calibrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("Calibration not implemented.")
 
 async def post_init(application: Application):
-    asyncio.create_task(pipe_listener(application))
+    asyncio.create_task(notify_manager(application))
 
 def main():
     application = (

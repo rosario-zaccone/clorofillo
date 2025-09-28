@@ -57,36 +57,25 @@ def watering(pot, pump_pin, humidity_channel):
 
 
 # before start the program
-# mkfifo /tmp/iot_pipe for the pipe
 # sudo pigpiod for the servo
 # install camera libraries
 # other things  TODO
-
-fifo_path = '/tmp/the_fifo'
-
 def main():
     try:
-        while 1:
+        start = time.time()
+        while True:
             pot_one = PlantPot.from_orm(pot_repository.get_by_id(1))
             pot_two = PlantPot.from_orm(pot_repository.get_by_id(2))
             pot_three = PlantPot.from_orm(pot_repository.get_by_id(3))
-
-            # GESTIORE SERBAOTIO VUOTO
-
             # IRRIGATION
             water_level = int(MCP3008(3).value * 100)
             if water_level > 20:
                 watering(pot_one, PUMP_ONE_PIN, 0)
                 watering(pot_two, PUMP_TWO_PIN, 1)
                 watering(pot_three, PUMP_THREE_PIN, 2)
-            else:
-                try:
-                    with open(fifo_path, 'w') as fifo_pipe:
-                        fifo_pipe.write('1')
-                        fifo_pipe.flush()
-                except Exception as e:
-                    print(f"Error while writing on pipe: {e}")
-                    time.sleep(1)
+            elif time.time() - start > 10:
+                start = time.time()
+                pass #write ntoofy in the db
     except KeyboardInterrupt:
         print("Interrotto dall'utente.")
     finally:
