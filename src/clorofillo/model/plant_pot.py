@@ -4,11 +4,9 @@ from .measurement import Measurement
 from clorofillo.persistence.orm_models import PlantPotORM
 
 class PlantPot:
-    def __init__(self, id: int, size: float, plant: str, configuration: Configuration,
+    def __init__(self, id: int, configuration: Configuration,
                  measurements: list[Measurement], photos: list[PlantPhoto]):
         self._id = id
-        self.size = size
-        self.plant = plant
         self.configuration = configuration
         self.measurements = measurements
         self.photos = photos
@@ -27,8 +25,6 @@ class PlantPot:
     def from_orm(orm_obj):
         return PlantPot(
             id=orm_obj.id,
-            size=orm_obj.size,
-            plant=orm_obj.plant,
             configuration=Configuration.from_orm(orm_obj.configuration) if orm_obj.configuration else None,
             measurements=[Measurement.from_orm(m) for m in orm_obj.measurements] if orm_obj.measurements else [],
             photos=[PlantPhoto.from_orm(p) for p in orm_obj.photos] if orm_obj.photos else []
@@ -36,9 +32,7 @@ class PlantPot:
 
     def to_orm(self):
         orm = PlantPotORM(
-            id=self.id,
-            size=self.size,
-            plant=self.plant
+            id=self.id
         )
         if self.configuration:
             orm.configuration = self.configuration.to_orm()
@@ -50,7 +44,7 @@ class PlantPot:
     
     def __str__(self):
         return (
-            f"PlantPot(id={self.id}, size={self.size}, plant='{self.plant}', "
+            f"PlantPot(id={self.id},"
             f"configuration={self.configuration}, "
             f"measurements_count={len(self.measurements)}, "
             f"photos_count={len(self.photos)})"

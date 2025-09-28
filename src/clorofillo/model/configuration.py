@@ -2,18 +2,33 @@ from clorofillo.persistence.orm_models import PlantPotORM
 from clorofillo.persistence.orm_models import ConfigurationORM 
 
 class Configuration:
-    def __init__(self, threshold: float, watering_mode: bool, shot_freq: int, insect_freq: int, position: int, id: int = None):
+    def __init__(self, threshold: float, watering_mode: bool, shot_freq: int, insect_freq: int, position: int, size: float, plant: str, id: int = None):
         self._id = id
         self.threshold = threshold
         self.watering_mode = watering_mode
         self.shot_freq = shot_freq
         self.insect_freq = insect_freq
         self.position = position
+        self.size = size
+        self.plant = plant
 
     @property
     def id(self):
         return self._id
+    @property
+    def size(self):
+        return self._size
     
+    @size.setter
+    def size(self, value):
+        if not isinstance(value, (float, int)):
+            raise ValueError("Size must be a float or int.")
+        value = float(value)
+        if value <= 0.0:
+            raise ValueError("Size must be positive.")
+        self._size = value
+
+
     @property
     def threshold(self):
         return self._threshold
@@ -79,6 +94,8 @@ class Configuration:
             shot_freq=orm_obj.shot_freq,
             insect_freq=orm_obj.insect_freq,
             position = orm_obj.position,
+            size = orm_obj.size,
+            plant = orm_obj.plant,
             id=getattr(orm_obj, 'id', None)
         )
 
@@ -88,7 +105,9 @@ class Configuration:
             watering_mode=self.watering_mode,
             shot_freq=self.shot_freq,
             insect_freq=self.insect_freq,
-            position = self.position
+            position = self.position,
+            size = self.size,
+            plant = self.plant
         )
 
         if self._id is not None:

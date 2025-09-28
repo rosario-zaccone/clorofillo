@@ -15,13 +15,13 @@ class ConfigurationORM(Base):
     shot_freq = Column(Integer, nullable=False)
     insect_freq = Column(Integer, nullable=False)
     position=Column(Integer, nullable=True)
+    size = Column(Float, nullable=False)
+    plant = Column(String, nullable=False)
     plant_pot = relationship("PlantPotORM", back_populates="configuration", uselist=False)
 
 class PlantPotORM(Base):
     __tablename__ = 'plant_pot'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    size = Column(Float, nullable=False)
-    plant = Column(String, nullable=False)
     configuration_id = Column(Integer, ForeignKey('configuration.id'), unique=True)
     configuration = relationship("ConfigurationORM", back_populates="plant_pot", uselist=False)
     measurements = relationship("MeasurementORM", back_populates="plant_pot", cascade="all, delete-orphan")
@@ -48,10 +48,3 @@ class PlantPhotoORM(Base):
     path = Column(String, nullable=False)
     plant_pot_id = Column(Integer, ForeignKey('plant_pot.id'), nullable=False)
     plant_pot = relationship("PlantPotORM", back_populates="photos")
-
-class NotificationORM(Base):
-    __tablename__ = 'notification'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    timestamp = Column(DateTime, nullable=False)
-    is_notified = Column(Boolean, nullable=False)
-    description = Column(String, nullable=False)

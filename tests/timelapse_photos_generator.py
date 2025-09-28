@@ -78,9 +78,12 @@ def create_timelapse_images():
 
         draw_plant(draw, frame, width, height)
 
+        # Creazione del timestamp con formato specificato
         current_date = start_date + timedelta(days=frame)
-        date_str = current_date.strftime("%Y%m%d")
-        filename = f"{idvaso}_{date_str}.png"
+        timestamp = current_date.strftime("%Y-%m-%d_%H-%M-%S")  # Formato richiesto
+        filename = f"{idvaso}_{timestamp}.jpg"  # Nome del file con idvaso e timestamp
+
+        # Salvataggio dell'immagine
         img.save(os.path.join(output_dir, filename))
 
     print(f"Generate 100 immagini in '{output_dir}/'")
