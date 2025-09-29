@@ -24,14 +24,16 @@ from clorofillo.business.plant_photo_service import PlantPhotoService
 
 
 GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+
 SERVO_PIN = 17
 PUMP_ONE_PIN = 4
-PUMP_TWO_PIN = 4 # da cmabaire
-PUMP_THREE_PIN = 4 # da cambiare
-FLOW_RATE = 0.025 # litri al secondo
-
-GPIO.setmode(GPIO.BCM)
+PUMP_TWO_PIN = 23
+PUMP_THREE_PIN = 24 
+FLOW_RATE = 0.05 # litri al secondo
 GPIO.setup(PUMP_ONE_PIN, GPIO.OUT)
+GPIO.setup(PUMP_TWO_PIN, GPIO.OUT)
+GPIO.setup(PUMP_THREE_PIN, GPIO.OUT)
 pi = pigpio.pi()
 
 # add possibility to disable insect detection
@@ -54,8 +56,13 @@ def watering(pot, pump_pin, humidity_channel):
     humidity = Utilities.map_humidity(MCP3008(humidity_channel).value)
     print(f"Pot number {pot.id} has humidity {humidity}%")
     if (pot.configuration.watering_mode and humidity < pot.configuration.threshold):
+        print(f"Watering pot {pot.id}")
+        GPIO.output(PUMP_ONE_PIN, GPIO.HIGH)
+        GPIO.output(PUMP_TWO_PIN, GPIO.HIGH)
+        GPIO.output(PUMP_THREE_PIN, GPIO.HIGH)
         GPIO.output(pump_pin, GPIO.LOW) # accendi pompa
         irrigation_time = 0.15 * pot.configuration.size / FLOW_RATE
+        print(f"irrigation_time of pot {pot.id}", irrigation_time)
         time.sleep(irrigation_time)
         GPIO.output(pump_pin, GPIO.HIGH)
 
@@ -89,7 +96,7 @@ def main():
 
             ########################## IRRIGATION ###################################
             water_level = int(MCP3008(3).value * 100)
-            if water_level > 20:
+            if water_level < 20:
                 watering(pot_one, PUMP_ONE_PIN, 0)
                 watering(pot_two, PUMP_TWO_PIN, 1)
                 watering(pot_three, PUMP_THREE_PIN, 2)
@@ -140,6 +147,10 @@ def main():
         print("Interrotto dall'utente.")
     finally:
         pi.set_servo_pulsewidth(SERVO_PIN, 0)
+
+        GPIO.output(PUMP_ONE_PIN, GPIO.HIGH)
+        GPIO.output(PUMP_TWO_PIN, GPIO.HIGH)
+        GPIO.output(PUMP_THREE_PIN, GPIO.HIGH)
         pi.stop()
         session.close()
         print("Pulizia completata.")

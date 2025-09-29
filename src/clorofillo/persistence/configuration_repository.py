@@ -28,6 +28,8 @@ class ConfigurationRepository(Repository):
         orm_obj.shot_freq = new_config.shot_freq
         orm_obj.insect_freq = new_config.insect_freq
         orm_obj.position = new_config.position
+        orm_obj.plant = new_config.plant
+        orm_obj.size = new_config.size
 
         self.session.commit()
         return orm_obj
