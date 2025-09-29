@@ -60,7 +60,7 @@ def watering(pot, pump_pin, humidity_channel):
         GPIO.output(PUMP_ONE_PIN, GPIO.HIGH)
         GPIO.output(PUMP_TWO_PIN, GPIO.HIGH)
         GPIO.output(PUMP_THREE_PIN, GPIO.HIGH)
-        GPIO.output(pump_pin, GPIO.LOW) # accendi pompa
+        GPIO.output(pump_pin, GPIO.LOW)
         irrigation_time = 0.15 * pot.configuration.size / FLOW_RATE
         print(f"irrigation_time of pot {pot.id}", irrigation_time)
         time.sleep(irrigation_time)
@@ -160,7 +160,7 @@ def main():
 if __name__ == "__main__":
     main()
 
-# per ora, la frequenza di scatto insetto è uguale per tutti i vasi (prende la freq del vaso con id 1)
+# insect frequency is the same as pot one for other pots
 
 
 
