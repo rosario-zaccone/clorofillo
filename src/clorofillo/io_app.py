@@ -72,7 +72,11 @@ def watering(pot, pump_pin, humidity_channel):
 # install camera libraries
 # other things  TODO
 def main():
+    i = 0
     try:
+        GPIO.output(PUMP_ONE_PIN, GPIO.HIGH)
+        GPIO.output(PUMP_TWO_PIN, GPIO.HIGH)
+        GPIO.output(PUMP_THREE_PIN, GPIO.HIGH)
         if not pi.connected:
             print("Errore: pigpiod non è attivo. Avvialo con 'sudo pigpiod'")
             return
@@ -95,6 +99,7 @@ def main():
                     r.rpush("rasp_to_bot", 3)
 
             ########################## IRRIGATION ###################################
+            '''
             water_level = int(MCP3008(3).value * 100)
             if water_level < 20:
                 watering(pot_one, PUMP_ONE_PIN, 0)
@@ -103,6 +108,7 @@ def main():
             elif time.time() - start > 3600: # Limit to one notification at hour
                 start = time.time()
                 r.rpush("rasp_to_bot", 1)
+            '''
             
             ################### TIMELAPSE ###################################################
             insect_freq = 60 / pot_one.configuration.insect_freq
@@ -141,7 +147,23 @@ def main():
                 pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(pot_three.configuration.position))
                 photo_service.timelapse_shot(1, datetime.now())
                 time.sleep(2)
-            time.sleep(1)
+            ##################################### INSECT ###############################################
+            # Insect detection
+            insect_freq = 2
+            if (insect_freq != 0):
+                pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(0))
+                #photo_service.insect_shot(1, datetime.now())
+                time.sleep(insect_freq)
+
+                pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(90))
+                #photo_service.insect_shot(2, datetime.now())
+                camera.take_photo("data/photos/test/a" + str(i) + ".jpg")
+                time.sleep(insect_freq)
+                
+                pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(180))
+                #photo_service.insect_shot(3, datetime.now())
+                time.sleep(insect_freq)    
+                i = i + 1
             
     except KeyboardInterrupt:
         print("Interrotto dall'utente.")
@@ -163,36 +185,13 @@ if __name__ == "__main__":
 # insect frequency is the same as pot one for other pots
 
 
+'''
+    Insect detection
+    migliorare stabilità del supporto telecamera, l'algoritmo non è male
 
+    1. rilevaizone cambaimenti foto, salvati in maybe_insect con formato idvaso_datashot.estensione
+    2. invio notifica telegram (è un insetto si o no?)
+    3. scelta dlel'utente
+    4. interrogazione api, se è un insetto spostala in insect e nel db. elimina in utti i casi le foto da maybe_insect
+'''
 
-
-
-
-
-
-
-
-
-    '''
-    last_day = None
-    
-    try:
-        while True:
-            pot_one = PlantPot.from_orm(repo.get_by_id(1))
-            pot_two = PlantPot.from_orm(repo.get_by_id(2))
-            pot_three = PlantPot.from_orm(repo.get_by_id(3))
-            
-
-            # Insect detection
-            pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(0))
-            service.insect_shot(1, datetime.now())
-            time.sleep(insect_freq)
-
-            pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(90))
-            service.insect_shot(2, datetime.now())
-            time.sleep(insect_freq)
-            
-            #pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(180))
-            #service.insect_shot(3, datetime.now())
-            #time.sleep(insect_freq)    
-    '''

@@ -10,10 +10,11 @@ import matplotlib.pyplot as plt
 from time import time
 from clorofillo.business.utilities import Utilities
 from clorofillo.model.plant_photo import PlantPhoto
+from clorofillo.persistence.plant_photo_repository import PlantPhotoRepository
 
 
 class PlantPhotoService:
-    def __init__(self, repository, camera, api_key=None, api_url=None):
+    def __init__(self, repository: PlantPhotoRepository, camera, api_key=None, api_url=None):
         load_dotenv()
         self._repository = repository
         self.camera = camera
@@ -25,61 +26,61 @@ class PlantPhotoService:
         return self._repository
 
     def _detect_insect_patches_base64(self, before_path, after_path, save_patches=True):
-        PATCH_MIN_WIDTH = int(os.getenv("PATCH_MIN_WIDTH", 20))
-        PATCH_MIN_HEIGHT = int(os.getenv("PATCH_MIN_HEIGHT", 20))
-        PATCH_MAX_WIDTH = int(os.getenv("PATCH_MAX_WIDTH", 300))
-        PATCH_MAX_HEIGHT = int(os.getenv("PATCH_MAX_HEIGHT", 300))
-        COLOR_DIFF_THRESH = int(os.getenv("COLOR_DIFF_THRESH", 30))
+            PATCH_MIN_WIDTH = int(os.getenv("PATCH_MIN_WIDTH", 20))
+            PATCH_MIN_HEIGHT = int(os.getenv("PATCH_MIN_HEIGHT", 20))
+            PATCH_MAX_WIDTH = int(os.getenv("PATCH_MAX_WIDTH", 300))
+            PATCH_MAX_HEIGHT = int(os.getenv("PATCH_MAX_HEIGHT", 300))
+            COLOR_DIFF_THRESH = int(os.getenv("COLOR_DIFF_THRESH", 30))
 
-        if not os.path.exists(before_path) or not os.path.exists(after_path):
-            return []
+            if not os.path.exists(before_path) or not os.path.exists(after_path):
+                return []
 
-        before = cv2.imread(before_path)
-        after = cv2.imread(after_path)
+            before = cv2.imread(before_path)
+            after = cv2.imread(after_path)
 
-        if before is None or after is None:
-            return []
+            if before is None or after is None:
+                return []
 
-        if before.shape != after.shape:
-            return []
+            if before.shape != after.shape:
+                return []
 
-        diff = cv2.absdiff(before, after)
-        diff_gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
-        _, thresh = cv2.threshold(diff_gray, COLOR_DIFF_THRESH, 255, cv2.THRESH_BINARY)
+            diff = cv2.absdiff(before, after)
+            diff_gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+            _, thresh = cv2.threshold(diff_gray, COLOR_DIFF_THRESH, 255, cv2.THRESH_BINARY)
 
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-        cleaned = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
-        cleaned = cv2.dilate(cleaned, kernel, iterations=2)
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+            cleaned = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+            cleaned = cv2.dilate(cleaned, kernel, iterations=2)
 
-        contours, _ = cv2.findContours(cleaned, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        if save_patches:
-            os.makedirs("data/photos/test/patch", exist_ok=True)
-
-        patches_b64 = []
-        i = 0
-        for cnt in contours:
-            x, y, w, h = cv2.boundingRect(cnt)
-            if not (PATCH_MIN_WIDTH <= w <= PATCH_MAX_WIDTH and PATCH_MIN_HEIGHT <= h <= PATCH_MAX_HEIGHT):
-                continue
-
-            patch_before = before[y:y+h, x:x+w]
-            patch_after = after[y:y+h, x:x+w]
-
-            if cv2.cvtColor(patch_after, cv2.COLOR_BGR2GRAY).std() < 10:
-                continue
-
-            _, buf_after = cv2.imencode('.jpg', patch_after)
-            b64_after = base64.b64encode(buf_after).decode('utf-8')
-            patches_b64.append(b64_after)
+            contours, _ = cv2.findContours(cleaned, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
             if save_patches:
-                path_base = f"data/photos/test/patch/patch_{i}"
-                cv2.imwrite(f"{path_base}_before.jpg", patch_before)
-                cv2.imwrite(f"{path_base}_after.jpg", patch_after)
-                i += 1
+                os.makedirs("data/photos/test/patch", exist_ok=True)
 
-        return patches_b64
+            patches_b64 = []
+            i = 0
+            for cnt in contours:
+                x, y, w, h = cv2.boundingRect(cnt)
+                if not (PATCH_MIN_WIDTH <= w <= PATCH_MAX_WIDTH and PATCH_MIN_HEIGHT <= h <= PATCH_MAX_HEIGHT):
+                    continue
+
+                patch_before = before[y:y+h, x:x+w]
+                patch_after = after[y:y+h, x:x+w]
+
+                if cv2.cvtColor(patch_after, cv2.COLOR_BGR2GRAY).std() < 10:
+                    continue
+
+                _, buf_after = cv2.imencode('.jpg', patch_after)
+                b64_after = base64.b64encode(buf_after).decode('utf-8')
+                patches_b64.append(b64_after)
+
+                if save_patches:
+                    path_base = f"data/photos/test/patch/patch_{i}"
+                    cv2.imwrite(f"{path_base}_before.jpg", patch_before)
+                    cv2.imwrite(f"{path_base}_after.jpg", patch_after)
+                    i += 1
+
+            return patches_b64
 
 
 
@@ -117,18 +118,17 @@ class PlantPhotoService:
         self.camera.take_photo(after_img)
         if os.path.isfile(before_img):
             patches_b64 = self._detect_insect_patches_base64(before_img, after_img, True)
+            '''
+            invia i sospetti a telegram
             if patches_b64:
                 i = 0
                 for patch in patches_b64:
                     # ora la salva sempre, in futuro modifica in modo che la salvi solo se l'API individua un insetto
                     img_data = base64.b64decode(patch)
-                    output_path = f"data/photos/insect/{pot_id}_{readable}_{i}.jpg"
-                    with open(output_path, "wb") as f:
-                        f.write(img_data)
-                        photo = PlantPhoto(timestamp, True, output_path)
-                        self._repository.insert(photo.to_orm(pot_id))
+                    output_path = f"data/photos/maybe_insect/{pot_id}_{readable}_{i}.jpg"  #salva i sospetti
                     i = i + 1
-                    self._repository.session.commit()
+                # qui va la parte dove scrivi su una lista redis ch eci sono nuovi sospetti. lato telegram bot ci sarà uno scan continuo del canale per capire se ci sono sospetti, e se ci sono ci sarà l'invio del form all'utente. se l'utente conferma, viene chiamata l'api e in caso di esitopositivo salvato su db
+            '''
             os.remove(before_img)
         os.rename(after_img, before_img)
     
