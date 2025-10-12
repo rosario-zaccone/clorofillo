@@ -65,6 +65,7 @@ def watering(pot, pump_pin, humidity_channel):
         print(f"irrigation_time of pot {pot.id}", irrigation_time)
         time.sleep(irrigation_time)
         GPIO.output(pump_pin, GPIO.HIGH)
+        time.sleep(5) # small pause after irrigation for let the soil absorb water
 
 
 # before start the program
@@ -72,7 +73,6 @@ def watering(pot, pump_pin, humidity_channel):
 # install camera libraries
 # other things  TODO
 def main():
-    i = 0
     try:
         GPIO.output(PUMP_ONE_PIN, GPIO.HIGH)
         GPIO.output(PUMP_TWO_PIN, GPIO.HIGH)
@@ -99,19 +99,17 @@ def main():
                     r.rpush("rasp_to_bot", 3)
 
             ########################## IRRIGATION ###################################
-            '''
             water_level = int(MCP3008(3).value * 100)
-            if water_level < 20:
+            if water_level > 20:
                 watering(pot_one, PUMP_ONE_PIN, 0)
                 watering(pot_two, PUMP_TWO_PIN, 1)
                 watering(pot_three, PUMP_THREE_PIN, 2)
             elif time.time() - start > 3600: # Limit to one notification at hour
                 start = time.time()
                 r.rpush("rasp_to_bot", 1)
-            '''
             
             ################### TIMELAPSE ###################################################
-            insect_freq = 60 / pot_one.configuration.insect_freq
+            
             t_freq_one = pot_one.configuration.shot_freq
             t_freq_two = pot_two.configuration.shot_freq
             t_freq_three = pot_three.configuration.shot_freq
@@ -149,21 +147,20 @@ def main():
                 time.sleep(2)
             ##################################### INSECT ###############################################
             # Insect detection
-            insect_freq = 2
-            if (insect_freq != 0):
+    
+            if (False and pot_one.configuration.insect_freq != 0):
+                insect_freq = 60 / pot_one.configuration.insect_freq
                 pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(0))
                 #photo_service.insect_shot(1, datetime.now())
                 time.sleep(insect_freq)
 
                 pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(90))
-                #photo_service.insect_shot(2, datetime.now())
-                camera.take_photo("data/photos/test/a" + str(i) + ".jpg")
+                photo_service.insect_shot(2, datetime.now())
                 time.sleep(insect_freq)
                 
                 pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(180))
                 #photo_service.insect_shot(3, datetime.now())
                 time.sleep(insect_freq)    
-                i = i + 1
             
     except KeyboardInterrupt:
         print("Interrotto dall'utente.")

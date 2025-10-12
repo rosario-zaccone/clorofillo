@@ -25,62 +25,79 @@ class PlantPhotoService:
     def repository(self):
         return self._repository
 
+
     def _detect_insect_patches_base64(self, before_path, after_path, save_patches=True):
-            PATCH_MIN_WIDTH = int(os.getenv("PATCH_MIN_WIDTH", 20))
-            PATCH_MIN_HEIGHT = int(os.getenv("PATCH_MIN_HEIGHT", 20))
-            PATCH_MAX_WIDTH = int(os.getenv("PATCH_MAX_WIDTH", 300))
-            PATCH_MAX_HEIGHT = int(os.getenv("PATCH_MAX_HEIGHT", 300))
-            COLOR_DIFF_THRESH = int(os.getenv("COLOR_DIFF_THRESH", 30))
+        # Parametri da variabili d'ambiente
+        min_w = int(os.getenv("PATCH_MIN_WIDTH", 20))
+        min_h = int(os.getenv("PATCH_MIN_HEIGHT", 20))
+        max_w = int(os.getenv("PATCH_MAX_WIDTH", 300))
+        max_h = int(os.getenv("PATCH_MAX_HEIGHT", 300))
+        diff_thresh = int(os.getenv("COLOR_DIFF_THRESH", 30))
 
-            if not os.path.exists(before_path) or not os.path.exists(after_path):
-                return []
+        # Verifica che i file esistano
+        if not (os.path.isfile(before_path) and os.path.isfile(after_path)):
+            return []
 
-            before = cv2.imread(before_path)
-            after = cv2.imread(after_path)
+        # Caricamento immagini
+        img_before = cv2.imread(before_path)
+        img_after = cv2.imread(after_path)
 
-            if before is None or after is None:
-                return []
+        # Verifica che le immagini siano valide e della stessa dimensione
+        if img_before is None or img_after is None or img_before.shape != img_after.shape:
+            return []
 
-            if before.shape != after.shape:
-                return []
+        # Calcolo della differenza
+        diff_img = cv2.absdiff(img_before, img_after)
+        gray_diff = cv2.cvtColor(diff_img, cv2.COLOR_BGR2GRAY)
 
-            diff = cv2.absdiff(before, after)
-            diff_gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
-            _, thresh = cv2.threshold(diff_gray, COLOR_DIFF_THRESH, 255, cv2.THRESH_BINARY)
+        # Binarizzazione della differenza
+        _, binary_mask = cv2.threshold(gray_diff, diff_thresh, 255, cv2.THRESH_BINARY)
 
-            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-            cleaned = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
-            cleaned = cv2.dilate(cleaned, kernel, iterations=2)
+        # Pulizia del rumore
+        kernel = np.ones((3, 3), np.uint8)
+        processed_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
 
-            contours, _ = cv2.findContours(cleaned, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # Estrazione dei contorni
+        contours, _ = cv2.findContours(processed_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+        # Preparazione cartella per salvataggio patch
+        if save_patches:
+            os.makedirs("data/photos/test/patch", exist_ok=True)
+
+        patch_list = []
+        patch_index = 0
+
+        for cnt in contours:
+            x, y, w, h = cv2.boundingRect(cnt)
+
+            # Filtro dimensionale
+            if not (min_w <= w <= max_w and min_h <= h <= max_h):
+                continue
+
+            # Estrazione delle patch
+            patch_b = img_before[y:y+h, x:x+w]
+            patch_a = img_after[y:y+h, x:x+w]
+
+            # Scarto patch troppo "piatte" (es. quasi tutto nero o bianco)
+            if cv2.cvtColor(patch_a, cv2.COLOR_BGR2GRAY).std() < 10:
+                continue
+
+            # Codifica in base64
+            success, buffer = cv2.imencode('.jpg', patch_a)
+            if not success:
+                continue
+            b64_patch = base64.b64encode(buffer).decode('utf-8')
+            patch_list.append(b64_patch)
+
+            # Salvataggio su disco se richiesto
             if save_patches:
-                os.makedirs("data/photos/test/patch", exist_ok=True)
+                base_filename = f"data/photos/test/patch/patch_{patch_index}"
+                cv2.imwrite(f"{base_filename}_before.jpg", patch_b)
+                cv2.imwrite(f"{base_filename}_after.jpg", patch_a)
+                patch_index += 1
 
-            patches_b64 = []
-            i = 0
-            for cnt in contours:
-                x, y, w, h = cv2.boundingRect(cnt)
-                if not (PATCH_MIN_WIDTH <= w <= PATCH_MAX_WIDTH and PATCH_MIN_HEIGHT <= h <= PATCH_MAX_HEIGHT):
-                    continue
+        return patch_list
 
-                patch_before = before[y:y+h, x:x+w]
-                patch_after = after[y:y+h, x:x+w]
-
-                if cv2.cvtColor(patch_after, cv2.COLOR_BGR2GRAY).std() < 10:
-                    continue
-
-                _, buf_after = cv2.imencode('.jpg', patch_after)
-                b64_after = base64.b64encode(buf_after).decode('utf-8')
-                patches_b64.append(b64_after)
-
-                if save_patches:
-                    path_base = f"data/photos/test/patch/patch_{i}"
-                    cv2.imwrite(f"{path_base}_before.jpg", patch_before)
-                    cv2.imwrite(f"{path_base}_after.jpg", patch_after)
-                    i += 1
-
-            return patches_b64
 
 
 
