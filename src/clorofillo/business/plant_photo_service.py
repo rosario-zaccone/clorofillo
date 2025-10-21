@@ -11,6 +11,7 @@ from time import time
 from clorofillo.business.utilities import Utilities
 from clorofillo.model.plant_photo import PlantPhoto
 from clorofillo.persistence.plant_photo_repository import PlantPhotoRepository
+from concurrent.futures import ThreadPoolExecutor
 
 
 class PlantPhotoService:
@@ -26,77 +27,95 @@ class PlantPhotoService:
         return self._repository
 
 
-    def _detect_insect_patches_base64(self, before_path, after_path, save_patches=True):
-        # Parametri da variabili d'ambiente
-        min_w = int(os.getenv("PATCH_MIN_WIDTH", 20))
-        min_h = int(os.getenv("PATCH_MIN_HEIGHT", 20))
-        max_w = int(os.getenv("PATCH_MAX_WIDTH", 300))
-        max_h = int(os.getenv("PATCH_MAX_HEIGHT", 300))
-        diff_thresh = int(os.getenv("COLOR_DIFF_THRESH", 30))
+    def clean_insect_detect(self):
+        folder_path = 'data/photos/maybe_insect/'
+        for filename in os.listdir(folder_path):
+            file_path = os.path.join(folder_path, filename)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
 
-        # Verifica che i file esistano
+    def _detect_insect_patches_base64(self, before_path, after_path, save_patches=True, color_thresh=30):
+
+        min_w, min_h = 40, 40
+        max_w, max_h = 300, 300
+        min_area = 500  # area minima del contorno
+
         if not (os.path.isfile(before_path) and os.path.isfile(after_path)):
             return []
 
-        # Caricamento immagini
         img_before = cv2.imread(before_path)
         img_after = cv2.imread(after_path)
-
-        # Verifica che le immagini siano valide e della stessa dimensione
         if img_before is None or img_after is None or img_before.shape != img_after.shape:
             return []
 
-        # Calcolo della differenza
-        diff_img = cv2.absdiff(img_before, img_after)
-        gray_diff = cv2.cvtColor(diff_img, cv2.COLOR_BGR2GRAY)
+        # Riduzione del rumore
+        img_before = cv2.medianBlur(img_before, 3)
+        img_after = cv2.medianBlur(img_after, 3)
 
-        # Binarizzazione della differenza
-        _, binary_mask = cv2.threshold(gray_diff, diff_thresh, 255, cv2.THRESH_BINARY)
+        # Confronto in spazio LAB (più stabile)
+        img_before_lab = cv2.cvtColor(img_before, cv2.COLOR_BGR2Lab)
+        img_after_lab = cv2.cvtColor(img_after, cv2.COLOR_BGR2Lab)
+        diff = cv2.absdiff(img_before_lab, img_after_lab)
 
-        # Pulizia del rumore
+        # Maschera delle differenze significative
+        mask = np.linalg.norm(diff, axis=2) > color_thresh
+        mask = mask.astype(np.uint8) * 255
+
+        # Pulizia rumore
         kernel = np.ones((3, 3), np.uint8)
-        processed_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=2)
 
-        # Estrazione dei contorni
-        contours, _ = cv2.findContours(processed_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        # Preparazione cartella per salvataggio patch
+        # Trova contorni delle aree nuove
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if save_patches:
             os.makedirs("data/photos/test/patch", exist_ok=True)
 
         patch_list = []
         patch_index = 0
+        to_save = []
 
         for cnt in contours:
             x, y, w, h = cv2.boundingRect(cnt)
+            area = cv2.contourArea(cnt)
 
-            # Filtro dimensionale
-            if not (min_w <= w <= max_w and min_h <= h <= max_h):
+            if not (min_w <= w <= max_w and min_h <= h <= max_h and area >= min_area):
                 continue
 
-            # Estrazione delle patch
-            patch_b = img_before[y:y+h, x:x+w]
-            patch_a = img_after[y:y+h, x:x+w]
+            patch_b = img_before[y:y + h, x:x + w]
+            patch_a = img_after[y:y + h, x:x + w]
 
-            # Scarto patch troppo "piatte" (es. quasi tutto nero o bianco)
-            if cv2.cvtColor(patch_a, cv2.COLOR_BGR2GRAY).std() < 10:
+            # Scarta patch troppo piatte (poco contrasto)
+            gray_patch = cv2.cvtColor(patch_a, cv2.COLOR_BGR2GRAY)
+            if gray_patch.std() < 10:
+                continue
+
+            # Scarta patch troppo scure o chiare
+            mean_val = gray_patch.mean()
+            if mean_val < 20 or mean_val > 235:
                 continue
 
             # Codifica in base64
             success, buffer = cv2.imencode('.jpg', patch_a)
             if not success:
                 continue
+
             b64_patch = base64.b64encode(buffer).decode('utf-8')
             patch_list.append(b64_patch)
 
-            # Salvataggio su disco se richiesto
             if save_patches:
                 base_filename = f"data/photos/test/patch/patch_{patch_index}"
-                cv2.imwrite(f"{base_filename}_before.jpg", patch_b)
-                cv2.imwrite(f"{base_filename}_after.jpg", patch_a)
+                to_save.append((f"{base_filename}_before.jpg", patch_b))
+                to_save.append((f"{base_filename}_after.jpg", patch_a))
                 patch_index += 1
 
+        # Salvataggio immagini in parallelo
+        if save_patches and to_save:
+            with ThreadPoolExecutor() as executor:
+                for path, img in to_save:
+                    executor.submit(cv2.imwrite, path, img)
+
         return patch_list
+
 
 
 

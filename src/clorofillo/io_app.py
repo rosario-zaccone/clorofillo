@@ -100,14 +100,15 @@ def main():
 
             ########################## IRRIGATION ###################################
             water_level = int(MCP3008(3).value * 100)
-            if water_level > 20:
+            '''
+            if water_level > 20: # disabled
                 watering(pot_one, PUMP_ONE_PIN, 0)
                 watering(pot_two, PUMP_TWO_PIN, 1)
                 watering(pot_three, PUMP_THREE_PIN, 2)
             elif time.time() - start > 3600: # Limit to one notification at hour
                 start = time.time()
                 r.rpush("rasp_to_bot", 1)
-            
+            '''
             ################### TIMELAPSE ###################################################
             
             t_freq_one = pot_one.configuration.shot_freq
@@ -146,9 +147,10 @@ def main():
                 photo_service.timelapse_shot(1, datetime.now())
                 time.sleep(2)
             ##################################### INSECT ###############################################
-            # Insect detection
+            # Insect detection (very sensible to fast light variation and wind)
+            # da disativare quando si cambia pianta o posizione del vaso
     
-            if (False and pot_one.configuration.insect_freq != 0):
+            if (pot_one.configuration.insect_freq != 0):
                 insect_freq = 60 / pot_one.configuration.insect_freq
                 pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(0))
                 #photo_service.insect_shot(1, datetime.now())
@@ -158,9 +160,11 @@ def main():
                 photo_service.insect_shot(2, datetime.now())
                 time.sleep(insect_freq)
                 
-                pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(180))
+                 #pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(180))
                 #photo_service.insect_shot(3, datetime.now())
-                time.sleep(insect_freq)    
+                #time.sleep(insect_freq)    
+            else:
+                photo_service.clean_insect_detect() # elimina le foto per il confronto insetti
             
     except KeyboardInterrupt:
         print("Interrotto dall'utente.")
