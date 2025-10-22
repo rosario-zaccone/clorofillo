@@ -150,6 +150,7 @@ def main():
             # Insect detection (very sensible to fast light variation and wind)
             # da disativare quando si cambia pianta o posizione del vaso
     
+            pot_one.configuration.insect_freq = 12
             if (pot_one.configuration.insect_freq != 0):
                 insect_freq = 60 / pot_one.configuration.insect_freq
                 pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(0))
@@ -160,7 +161,7 @@ def main():
                 photo_service.insect_shot(2, datetime.now())
                 time.sleep(insect_freq)
                 
-                 #pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(180))
+                #pi.set_servo_pulsewidth(SERVO_PIN, Utilities.angle_to_pulsewidth(180))
                 #photo_service.insect_shot(3, datetime.now())
                 #time.sleep(insect_freq)    
             else:

@@ -1,4 +1,4 @@
-import cv2
+import cv2, redis
 from PIL import Image
 import io
 import numpy as np
@@ -117,7 +117,24 @@ class PlantPhotoService:
         return patch_list
 
 
-
+    def _simulate_insect_api(self, base64_input: str) -> str:
+        import random
+        insect_names = [
+            "apis_mellifera",        # Ape europea
+            "danaus_plexippus",      # Farfalla monarca
+            "coccinella_septempunctata",  # Coccinella
+            "anopheles_gambiae",     # Zanzara
+            "gryllus_campestris",    # Grillo
+            "musca_domestica",       # Mosca domestica
+            "bombyx_mori",           # Baco da seta
+            "tenebrio_molitor",      # Tarma della farina
+            "drosophila_melanogaster", # Moscerino della frutta
+            "formica_rufa"           # Formica rossa
+        ]
+        if random.random() < 0.7:
+            return random.choice(insect_names)
+        else:
+            return "no_insect"
 
 
     def _call_kindwise_api_with_files(self, patches_base64):
@@ -141,30 +158,45 @@ class PlantPhotoService:
                 f"Errore API: status code {response.status_code}, response: {response.text}"
             )
 
-    def insect_shot(self, pot_id, timestamp): #timestamp deve essere YY-MM-DD-H-M-S
-            # scatta foto after e comparale con before (solo se esiste before)
-            # testa i sospetti con api insetti
-            # se sono insetti spostali nella cartella insect e mettili nel db
-            # rimuovi l avecchia before, fai diventare after la nuova before
-        
-        # nome file insetto: id_timestamp_eventuale numero se ci sono piu patch per itmestamp
+    def insect_shot(self, pot_id, timestamp): 
         readable = str(timestamp).replace(" ", "_")
         before_img = f"data/photos/maybe_insect/before_{pot_id}.jpg"
         after_img = f"data/photos/maybe_insect/after_{pot_id}.jpg"
         self.camera.take_photo(after_img)
         if os.path.isfile(before_img):
             patches_b64 = self._detect_insect_patches_base64(before_img, after_img, True)
-            '''
-            invia i sospetti a telegram
-            if patches_b64:
-                i = 0
+            if (patches_b64):
                 for patch in patches_b64:
-                    # ora la salva sempre, in futuro modifica in modo che la salvi solo se l'API individua un insetto
-                    img_data = base64.b64decode(patch)
-                    output_path = f"data/photos/maybe_insect/{pot_id}_{readable}_{i}.jpg"  #salva i sospetti
-                    i = i + 1
-                # qui va la parte dove scrivi su una lista redis ch eci sono nuovi sospetti. lato telegram bot ci sarà uno scan continuo del canale per capire se ci sono sospetti, e se ci sono ci sarà l'invio del form all'utente. se l'utente conferma, viene chiamata l'api e in caso di esitopositivo salvato su db
-            '''
+                    #api call
+                    insect_name = self._simulate_insect_api(patch)
+                    print(insect_name)
+                    if (insect_name != "no_insect"):
+                        # file save
+                        base_dir = "data/photos/insect"
+                        os.makedirs(base_dir, exist_ok=True)
+                        image_data = base64.b64decode(patch)
+                        readable = str(timestamp).replace(" ", "_")
+                        path = os.path.join(base_dir, f"{pot_id}_{insect_name}_{readable}.jpg")
+                        if os.path.exists(path):
+                            counter = 1
+                            while True:
+                                new_path = os.path.join(base_dir, f"{pot_id}_{insect_name}_{readable}_{counter}.jpg")
+                                if not os.path.exists(new_path):
+                                    path = new_path
+                                    break
+                                counter += 1
+                        with open(path, "wb") as f:
+                            f.write(image_data)
+                        #db save
+                        photo = PlantPhoto(timestamp, True, path)
+                        self._repository.insert(photo.to_orm(pot_id))
+                        self._repository.session.commit()
+                        # telegram notify redis
+                        r = redis.Redis(host="localhost", port=6379, db=0)
+                        r.rpush("rasp_to_bot", 4)
+                        r.close()
+                
+                pass
             os.remove(before_img)
         os.rename(after_img, before_img)
     

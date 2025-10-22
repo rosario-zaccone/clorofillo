@@ -68,7 +68,12 @@ async def notify_manager(application):
             if value == 3:
                 message_text = "⚠️ Calibration failed!"
                 for chat_id in AUTHORIZED_CHAT_IDS:
-                    await send_telegram_message(application.bot, chat_id, message_text)            
+                    await send_telegram_message(application.bot, chat_id, message_text)
+            if value == 4: # MOSTRARE ANCHE FOTO OLTRE CHE MESSAGGIO
+                message_text = "⚠️ Insect detected!"
+                for chat_id in AUTHORIZED_CHAT_IDS:
+                    await send_telegram_message(application.bot, chat_id, message_text)        
+                        
         await asyncio.sleep(0.1) 
 
 
@@ -131,6 +136,23 @@ async def get_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 
 @authorized_only
+async def get_insect_diary(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    try:
+        if len(context.args) != 1:
+            raise ValueError("Wrong number of arguments")
+        pot_id = context.args[0]
+        pot_orm = pot_repository.get_by_id(pot_id)
+        if pot_orm is None:
+            raise ValueError("ID doesn't exist")
+        path = pot_service.insect_diary(pot_id)
+        await update.message.reply_text("🎬 Your insect diary is ready!")
+        await update.message.reply_document(document=open(path, "rb"), caption="🌱 Insect diary")
+    except ValueError as ve:
+        await update.message.reply_text(f"Error: {str(ve)}")
+    except Exception as e:
+        await update.message.reply_text(f"Error: {e}")
+
+@authorized_only
 async def set_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         if len(context.args) != 8:
@@ -184,6 +206,7 @@ def main():
     application.add_handler(CommandHandler("setsettings", set_configuration))
     application.add_handler(CommandHandler("timelapse", get_timelapse))
     application.add_handler(CommandHandler("calibrate", calibrate))
+    application.add_handler(CommandHandler("diary", get_insect_diary))
     application.run_polling()
 
 if __name__ == "__main__":

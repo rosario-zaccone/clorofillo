@@ -20,6 +20,9 @@ class PlantPot:
     
     def add_measurement(self, measurement: Measurement):
         self.measurements.append(measurement)
+    
+    def get_insect_photos(self):
+        return filter(lambda x: x.is_insect, self.photos)
 
     @staticmethod
     def from_orm(orm_obj):
