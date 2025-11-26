@@ -141,17 +141,25 @@ class PlantPotService:
                 if angles.get(marker_id) is not None:
                     continue
                 marker_corners = marker_corners.reshape((4, 2))
-                top_left, top_right, bottom_right, bottom_left = marker_corners
-                cX = int((top_left[0] + bottom_right[0]) / 2.0)
+
+                # Robust center: average of the four corners
+                cX = int(marker_corners[:, 0].mean())
+                cY = int(marker_corners[:, 1].mean())
+
                 image_center_x = image.shape[1] // 2
-                tolerance = image.shape[1] * 0.1 
-                is_centered = abs(cX - image_center_x) <= tolerance
+                image_center_y = image.shape[0] // 2
+
+                # Tolerance as fraction of image size (e.g. 0.25 = 25%)
+                tolerance_frac = 0.35
+                tol_x = image.shape[1] * tolerance_frac
+                tol_y = image.shape[0] * tolerance_frac
+
+                is_centered = (abs(cX - image_center_x) <= tol_x) and (abs(cY - image_center_y) <= tol_y)
                 if is_centered:
-                    print(f"ID detected: {marker_id}, angle: {i}")
+                    print(f"ID detected: {int(marker_id)}, angle: {i}, center=({cX},{cY}), image_center=({image_center_x},{image_center_y}), tol=({tol_x:.1f},{tol_y:.1f})")
                     angles[marker_id] = i
         if len(angles) != 3:
             raise Exception("Failed, no enough pot detected")
-            return
         for i in range(1, 4):
             pot_orm = self._repository.get_by_id(i)
             pot = PlantPot.from_orm(pot_orm)

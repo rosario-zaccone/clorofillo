@@ -1,11 +1,11 @@
+#!/usr/bin/env python3
 import logging
 import os, time
 import asyncio, redis
 from telegram.constants import ParseMode
-
 from datetime import datetime
 from dotenv import load_dotenv
-from telegram import Update
+from telegram import Update, BotCommand, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
 from clorofillo.persistence.configuration_repository import ConfigurationRepository
 from clorofillo.persistence.plant_pot_repository import PlantPotRepository
@@ -14,7 +14,6 @@ from sqlalchemy.orm import sessionmaker
 from clorofillo.model.configuration import Configuration
 from clorofillo.model.plant_pot import PlantPot
 from clorofillo.business.plant_pot_service import PlantPotService
-from clorofillo.model.plant_pot import PlantPot
 from clorofillo.persistence.orm_models import *
 load_dotenv()
 
@@ -34,7 +33,20 @@ AUTHORIZED_CHAT_IDS = set()
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     AUTHORIZED_CHAT_IDS.add(chat_id)
-    await update.message.reply_text("Hi! You can now use other commands.")
+
+    # Nice UI: quick-reply keyboard with the main bot commands
+    keyboard = [
+        ["/settings", "/setsettings", "/timelapse"],
+        ["/calibrate", "/diary", "/info"],
+        ["/help", "/start"]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+    await update.message.reply_text(
+        "Hi! You are authorized. Use the keyboard below or type a command.\n\n"
+        "Tip: use /info to see command details and parameter meanings.",
+        reply_markup=reply_markup
+    )
 
 def authorized_only(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
@@ -186,8 +198,60 @@ async def calibrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     r.rpush("bot_to_rasp", 1)
     await update.message.reply_text("Calibration started!")
 
+@authorized_only
+async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    help_text = (
+        "🤖 <b>Bot commands and parameters</b>\n\n"
+        "/start - Authorize this chat and show quick command keyboard\n"
+        "/help - Show this help (alias of /start)\n\n"
+
+        "/settings &lt;pot_id&gt; - Show configuration for pot (example: /settings 1)\n\n"
+
+        "/setsettings &lt;id&gt; &lt;watering_mode&gt; &lt;threshold&gt; "
+        "&lt;shot_freq&gt; &lt;insect_freq&gt; &lt;position&gt; &lt;plant&gt; &lt;size&gt;\n"
+        "  • id: pot id (integer)\n"
+        "  • watering_mode: true/false (enable/disable automatic watering)\n"
+        "  • threshold: humidity threshold in % (float)\n"
+        "  • shot_freq: timelapse shots per day (int)\n"
+        "  • insect_freq: insect detection frequency (shots per minute) (int)\n"
+        "  • position: servo position in degrees (0–180) (int)\n"
+        "  • plant: plant name (string)\n"
+        "  • size: pot size in liters (float)\n\n"
+
+        "/timelapse &lt;pot_id&gt; &lt;from YYYY-MM-DD&gt; &lt;to YYYY-MM-DD&gt; &lt;fps&gt;\n"
+        "  • Example: /timelapse 1 2025-01-01 2025-01-31 24\n\n"
+
+        "/calibrate - Start camera+servo calibration (you will receive a notification when finished)\n"
+        "/diary &lt;pot_id&gt; - Get the insect diary for the pot\n\n"
+
+        "Use the keyboard buttons for quick access to these commands."
+    )
+
+    await update.message.reply_text(help_text, parse_mode=ParseMode.HTML)
+
+
+
+
 async def post_init(application: Application):
+    # start background task
     asyncio.create_task(notify_manager(application))
+
+    # Set the bot command list so Telegram clients show a nice commands UI
+    commands = [
+        BotCommand("start", "Authorize chat and show keyboard"),
+        BotCommand("help", "Show help and quick info"),
+        BotCommand("settings", "Show configuration for a pot"),
+        BotCommand("setsettings", "Update configuration for a pot"),
+        BotCommand("timelapse", "Create a timelapse video for a pot"),
+        BotCommand("calibrate", "Start calibration procedure"),
+        BotCommand("diary", "Get insect diary for a pot"),
+        BotCommand("info", "Show commands and parameter meanings"),
+    ]
+    try:
+        await application.bot.set_my_commands(commands)
+    except Exception as e:
+        logger.warning(f"Failed to set bot commands: {e}")
+
 
 def main():
     application = (
@@ -207,6 +271,7 @@ def main():
     application.add_handler(CommandHandler("timelapse", get_timelapse))
     application.add_handler(CommandHandler("calibrate", calibrate))
     application.add_handler(CommandHandler("diary", get_insect_diary))
+    application.add_handler(CommandHandler("info", info))
     application.run_polling()
 
 if __name__ == "__main__":

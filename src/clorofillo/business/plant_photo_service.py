@@ -12,6 +12,12 @@ from clorofillo.business.utilities import Utilities
 from clorofillo.model.plant_photo import PlantPhoto
 from clorofillo.persistence.plant_photo_repository import PlantPhotoRepository
 from concurrent.futures import ThreadPoolExecutor
+import os
+import cv2
+import numpy as np
+import base64
+from concurrent.futures import ThreadPoolExecutor
+from skimage.metrics import structural_similarity as ssim
 
 
 class PlantPhotoService:
@@ -34,87 +40,99 @@ class PlantPhotoService:
             if os.path.isfile(file_path):
                 os.remove(file_path)
 
-    def _detect_insect_patches_base64(self, before_path, after_path, save_patches=True, color_thresh=30):
 
-        min_w, min_h = 40, 40
-        max_w, max_h = 300, 300
-        min_area = 500  # area minima del contorno
-
-        if not (os.path.isfile(before_path) and os.path.isfile(after_path)):
-            return []
-
-        img_before = cv2.imread(before_path)
-        img_after = cv2.imread(after_path)
-        if img_before is None or img_after is None or img_before.shape != img_after.shape:
-            return []
-
-        # Riduzione del rumore
-        img_before = cv2.medianBlur(img_before, 3)
-        img_after = cv2.medianBlur(img_after, 3)
-
-        # Confronto in spazio LAB (più stabile)
-        img_before_lab = cv2.cvtColor(img_before, cv2.COLOR_BGR2Lab)
-        img_after_lab = cv2.cvtColor(img_after, cv2.COLOR_BGR2Lab)
-        diff = cv2.absdiff(img_before_lab, img_after_lab)
-
-        # Maschera delle differenze significative
-        mask = np.linalg.norm(diff, axis=2) > color_thresh
-        mask = mask.astype(np.uint8) * 255
-
-        # Pulizia rumore
-        kernel = np.ones((3, 3), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=2)
-
-        # Trova contorni delle aree nuove
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if save_patches:
-            os.makedirs("data/photos/test/patch", exist_ok=True)
-
-        patch_list = []
-        patch_index = 0
-        to_save = []
-
-        for cnt in contours:
-            x, y, w, h = cv2.boundingRect(cnt)
+    def _detect_insect_patches_base64(
+        self, 
+        before_path, 
+        after_path, 
+        save_patches=True, 
+        min_area=500,
+        max_area=6000,
+        max_width=100,
+        max_height=100
+    ):
+        """
+        Confronta due immagini e individua le patch dove ci sono cambiamenti (possibili insetti).
+        Restituisce un array di stringhe base64 delle patch "after".
+        Salva le patch se save_patches=True.
+        Utilizza allineamento ORB per ridurre falsi positivi.
+        """
+        # Leggi le immagini
+        before = cv2.imread(before_path)
+        after = cv2.imread(after_path)
+        if before is None or after is None:
+            raise ValueError("Errore nel caricamento delle immagini")
+        
+        # Converti in scala di grigi
+        before_gray = cv2.cvtColor(before, cv2.COLOR_BGR2GRAY)
+        after_gray = cv2.cvtColor(after, cv2.COLOR_BGR2GRAY)
+        
+        # --- Allineamento tramite ORB ---
+        orb = cv2.ORB_create(500)
+        kp1, des1 = orb.detectAndCompute(before_gray, None)
+        kp2, des2 = orb.detectAndCompute(after_gray, None)
+        
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        matches = bf.match(des1, des2)
+        matches = sorted(matches, key=lambda x: x.distance)
+        
+        if len(matches) >= 4:
+            src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
+            dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
+            M, _ = cv2.estimateAffinePartial2D(src_pts, dst_pts)
+            before_aligned = cv2.warpAffine(before, M, (after.shape[1], after.shape[0]))
+        else:
+            before_aligned = before.copy()
+        
+        before_gray = cv2.cvtColor(before_aligned, cv2.COLOR_BGR2GRAY)
+        
+        # --- Differenza immagini ---
+        diff = cv2.absdiff(after_gray, before_gray)
+        _, thresh = cv2.threshold(diff, 30, 255, cv2.THRESH_BINARY)
+        
+        # Operazioni morfologiche
+        kernel = np.ones((3,3), np.uint8)
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
+        thresh = cv2.dilate(thresh, kernel, iterations=2)
+        
+        # Trova contorni
+        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        patches_base64 = []
+        patch_dir = "data/photos/test/patch"
+        if save_patches and not os.path.exists(patch_dir):
+            os.makedirs(patch_dir)
+        
+        for i, cnt in enumerate(contours):
             area = cv2.contourArea(cnt)
-
-            if not (min_w <= w <= max_w and min_h <= h <= max_h and area >= min_area):
+            if area < min_area:
                 continue
-
-            patch_b = img_before[y:y + h, x:x + w]
-            patch_a = img_after[y:y + h, x:x + w]
-
-            # Scarta patch troppo piatte (poco contrasto)
-            gray_patch = cv2.cvtColor(patch_a, cv2.COLOR_BGR2GRAY)
-            if gray_patch.std() < 10:
+            if max_area is not None and area > max_area:
                 continue
-
-            # Scarta patch troppo scure o chiare
-            mean_val = gray_patch.mean()
-            if mean_val < 20 or mean_val > 235:
+            
+            x, y, w, h = cv2.boundingRect(cnt)
+            
+            if max_width is not None and w > max_width:
                 continue
-
-            # Codifica in base64
-            success, buffer = cv2.imencode('.jpg', patch_a)
-            if not success:
+            if max_height is not None and h > max_height:
                 continue
-
-            b64_patch = base64.b64encode(buffer).decode('utf-8')
-            patch_list.append(b64_patch)
-
+            
+            # Ritaglia patch "after"
+            patch_after = after[y:y+h, x:x+w]
+            patch_after_pil = Image.fromarray(cv2.cvtColor(patch_after, cv2.COLOR_BGR2RGB))
+            
             if save_patches:
-                base_filename = f"data/photos/test/patch/patch_{patch_index}"
-                to_save.append((f"{base_filename}_before.jpg", patch_b))
-                to_save.append((f"{base_filename}_after.jpg", patch_a))
-                patch_index += 1
+                patch_after_pil.save(os.path.join(patch_dir, f"patch_{i}_after.png"))
+            
+            # Converti in base64 e aggiungi all'array
+            buffered_after = io.BytesIO()
+            patch_after_pil.save(buffered_after, format="PNG")
+            base64_after = base64.b64encode(buffered_after.getvalue()).decode("utf-8")
+            
+            patches_base64.append(base64_after)
+        
+        return patches_base64
 
-        # Salvataggio immagini in parallelo
-        if save_patches and to_save:
-            with ThreadPoolExecutor() as executor:
-                for path, img in to_save:
-                    executor.submit(cv2.imwrite, path, img)
-
-        return patch_list
 
 
     def _simulate_insect_api(self, base64_input: str) -> str:
@@ -134,7 +152,7 @@ class PlantPhotoService:
         if random.random() < 0.7:
             return random.choice(insect_names)
         else:
-            return "no_insect"
+            return None
 
 
     def _call_kindwise_api_with_files(self, patches_base64):
@@ -170,7 +188,7 @@ class PlantPhotoService:
                     #api call
                     insect_name = self._simulate_insect_api(patch)
                     print(insect_name)
-                    if (insect_name != "no_insect"):
+                    if (insect_name != None):
                         # file save
                         base_dir = "data/photos/insect"
                         os.makedirs(base_dir, exist_ok=True)

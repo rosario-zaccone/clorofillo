@@ -1,18 +1,36 @@
+#!/usr/bin/env python3
+import sys
 import os
-import base64
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from unittest.mock import MagicMock
-from clorofillo.persistence.orm_models import Base
-from clorofillo.persistence.plant_photo_repository import PlantPhotoRepository
-from clorofillo.business.plant_photo_service import PlantPhotoService
 
-engine = create_engine('sqlite:///data/db.sqlite', echo=False, future=True)
-Base.metadata.create_all(engine)
-SessionLocal = sessionmaker(bind=engine)
-session = SessionLocal()
-repo = PlantPhotoRepository(session)
-s = PlantPhotoService(repo, MagicMock())
+DEFAULT_PATH = "/home/rosario/Documents/Projects/clorofillo/data/photos/test/patch/patch_17_after.png"
 
-s._detect_insect_patches_base64("data/photos/test/a7.jpg", "data/photos/test/a17.jpg", True)
+def dims_with_pil(path):
+    from PIL import Image
+    with Image.open(path) as img:
+        return img.size  # (width, height)
 
+def dims_with_cv2(path):
+    import cv2
+    img = cv2.imread(path)
+    if img is None:
+        raise RuntimeError("Cannot open image with cv2")
+    h, w = img.shape[:2]
+    return (w, h)
+
+def print_dims(path):
+    if not os.path.isfile(path):
+        print(f"File not found: {path}")
+        return
+    try:
+        w, h = dims_with_pil(path)
+    except Exception:
+        try:
+            w, h = dims_with_cv2(path)
+        except Exception as e:
+            print(f"Failed to read image: {e}")
+            return
+    print(f"{os.path.basename(path)}: {w} x {h} (width x height)")
+
+if __name__ == "__main__":
+    path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PATH
+    print_dims(path)
