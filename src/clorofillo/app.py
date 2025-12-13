@@ -9,6 +9,7 @@ from telegram import Update, BotCommand, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
 from clorofillo.persistence.configuration_repository import ConfigurationRepository
 from clorofillo.persistence.plant_pot_repository import PlantPotRepository
+from clorofillo.persistence.plant_photo_repository import PlantPhotoRepository
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from clorofillo.model.configuration import Configuration
@@ -22,8 +23,10 @@ SessionLocal = sessionmaker(bind=engine)
 session = SessionLocal()
 conf_repository = ConfigurationRepository(session)
 pot_repository = PlantPotRepository(session)
+photo_repository = PlantPhotoRepository(session)
 pot_service = PlantPotService(pot_repository)
 r = redis.Redis(host='localhost', port=6379, db=0)
+CALIB_DIR = "data/calibration"
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -73,14 +76,18 @@ async def notify_manager(application):
                 message_text = "⚠️ Empty tank!"
                 for chat_id in AUTHORIZED_CHAT_IDS:
                     await send_telegram_message(application.bot, chat_id, message_text)
-            if value == 2:
-                message_text = "⚠️ Calibration finished!"
+            elif value in (2, 3):
+                message_text = "⚠️ Calibration finished!" if value == 2 else "⚠️ Calibration failed!"
                 for chat_id in AUTHORIZED_CHAT_IDS:
                     await send_telegram_message(application.bot, chat_id, message_text)
-            if value == 3:
-                message_text = "⚠️ Calibration failed!"
-                for chat_id in AUTHORIZED_CHAT_IDS:
-                    await send_telegram_message(application.bot, chat_id, message_text)
+                    if os.path.exists(CALIB_DIR):
+                        files = sorted(os.listdir(CALIB_DIR))
+                        for file in files:
+                            if file.lower().endswith(".jpg"):
+                                angle = file.split("_")[1].split(".")[0]  # estrae l'angolo dal nome
+                                path = os.path.join(CALIB_DIR, file)
+                                with open(path, "rb") as f:
+                                    await application.bot.send_photo(chat_id=chat_id, photo=f, caption=f"Angle: {angle}°")
             if value == 4: # MOSTRARE ANCHE FOTO OLTRE CHE MESSAGGIO
                 message_text = "⚠️ Insect detected!"
                 for chat_id in AUTHORIZED_CHAT_IDS:
@@ -89,6 +96,35 @@ async def notify_manager(application):
         await asyncio.sleep(0.1) 
 
 
+#DEBUG
+@authorized_only
+async def clear_insect_photos(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    try:
+        # Remove from database
+        count = photo_repository.remove_insect_photos()
+
+        # Remove files from disk
+        folders = ["data/photos/insect", "data/photos/test/patch"]
+        removed_files = 0
+
+        for folder in folders:
+            if os.path.exists(folder):
+                for filename in os.listdir(folder):
+                    file_path = os.path.join(folder, filename)
+                    if os.path.isfile(file_path):
+                        try:
+                            os.remove(file_path)
+                            removed_files += 1
+                        except Exception as e:
+                            print(f"Failed to remove {file_path}: {e}")
+
+        await update.message.reply_text(
+            f"✅ Deleted {count} insect photos from the database.\n"
+            f"🗑️ Removed {removed_files} files from the file system."
+        )
+
+    except Exception as e:
+        await update.message.reply_text(f"Error deleting insect photos: {e}")
 
 @authorized_only
 async def get_timelapse(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -272,6 +308,7 @@ def main():
     application.add_handler(CommandHandler("calibrate", calibrate))
     application.add_handler(CommandHandler("diary", get_insect_diary))
     application.add_handler(CommandHandler("info", info))
+    application.add_handler(CommandHandler("clean", clear_insect_photos))
     application.run_polling()
 
 if __name__ == "__main__":
