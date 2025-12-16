@@ -40,7 +40,7 @@ class Utilities:
 
     @staticmethod
     def shot_hours(shot_freq):
-        unit = 24 / shot_freq
+        unit = (int)(24 / shot_freq)
         hours = [0]
         while len(hours) < shot_freq:
             hours.append(hours[-1] + unit)

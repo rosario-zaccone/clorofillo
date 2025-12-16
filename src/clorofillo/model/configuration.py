@@ -60,8 +60,8 @@ class Configuration:
     def shot_freq(self, value):
         if not isinstance(value, int):
             raise ValueError("Shot frequency must be an integer.")
-        if not (1 <= value <= 4):
-            raise ValueError("Shot frequency must be between 1 and 4 shots per day.")
+        if not (0 <= value <= 24):
+            raise ValueError("Shot frequency must be between 0 and 24 shots per day.")
         self._shot_freq = value
 
     @property

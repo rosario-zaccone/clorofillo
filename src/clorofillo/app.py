@@ -81,13 +81,14 @@ async def notify_manager(application):
                 for chat_id in AUTHORIZED_CHAT_IDS:
                     await send_telegram_message(application.bot, chat_id, message_text)
                     if os.path.exists(CALIB_DIR):
-                        files = sorted(os.listdir(CALIB_DIR))
+                        files = [f for f in os.listdir(CALIB_DIR) if f.lower().endswith(".jpg")]
+                        files.sort(key=lambda x: int(x.split("_")[0]))
                         for file in files:
-                            if file.lower().endswith(".jpg"):
-                                angle = file.split("_")[1].split(".")[0]  # estrae l'angolo dal nome
-                                path = os.path.join(CALIB_DIR, file)
-                                with open(path, "rb") as f:
-                                    await application.bot.send_photo(chat_id=chat_id, photo=f, caption=f"Angle: {angle}°")
+                            angle = file.split("_")[0]
+                            path = os.path.join(CALIB_DIR, file)
+                            with open(path, "rb") as f:
+                                await application.bot.send_photo(chat_id=chat_id, photo=f, caption=f"Angle: {angle}°")
+
             if value == 4: # MOSTRARE ANCHE FOTO OLTRE CHE MESSAGGIO
                 message_text = "⚠️ Insect detected!"
                 for chat_id in AUTHORIZED_CHAT_IDS:
@@ -96,9 +97,15 @@ async def notify_manager(application):
         await asyncio.sleep(0.1) 
 
 
+@authorized_only
+async def shutdown(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text("⚠️ Raspberry Pi is shutting down...")
+    # esegue shutdown in background
+    os.system("sudo shutdown now")
+
 #DEBUG
 @authorized_only
-async def clear_insect_photos(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def clean_insect_photos(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         # Remove from database
         count = photo_repository.remove_insect_photos()
@@ -125,6 +132,34 @@ async def clear_insect_photos(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     except Exception as e:
         await update.message.reply_text(f"Error deleting insect photos: {e}")
+
+#DEBUG
+@authorized_only
+async def clean_timelapse_photos(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    try:
+        photo_repository.remove_timelapse_photos()
+        folders = ["data/photos/timelapse", "data/photos/timelapse/test"]
+        removed_files = 0
+
+        for folder in folders:
+            if os.path.exists(folder):
+                for root, dirs, files in os.walk(folder):
+                    for filename in files:
+                        file_path = os.path.join(root, filename)
+                        if os.path.isfile(file_path):
+                            try:
+                                os.remove(file_path)
+                                removed_files += 1
+                            except Exception as e:
+                                print(f"Failed to remove {file_path}: {e}")
+
+        await update.message.reply_text(
+            f"✅ Removed {removed_files} timelapse photos from the file system."
+        )
+
+    except Exception as e:
+        await update.message.reply_text(f"Error deleting timelapse photos: {e}")
+
 
 @authorized_only
 async def get_timelapse(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -301,6 +336,7 @@ def main():
         .get_updates_read_timeout(60)
         .build()
     )
+
     application.add_handler(CommandHandler(["start", "help"], start))
     application.add_handler(CommandHandler("settings", get_configuration))
     application.add_handler(CommandHandler("setsettings", set_configuration))
@@ -308,8 +344,11 @@ def main():
     application.add_handler(CommandHandler("calibrate", calibrate))
     application.add_handler(CommandHandler("diary", get_insect_diary))
     application.add_handler(CommandHandler("info", info))
-    application.add_handler(CommandHandler("clean", clear_insect_photos))
+    application.add_handler(CommandHandler("cleantimelapse", clean_timelapse_photos))
+    application.add_handler(CommandHandler("cleaninsect", clean_insect_photos))
+    application.add_handler(CommandHandler("shutdown", shutdown))
     application.run_polling()
+
 
 if __name__ == "__main__":
     main()

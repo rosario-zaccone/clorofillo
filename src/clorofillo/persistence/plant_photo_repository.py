@@ -29,3 +29,15 @@ class PlantPhotoRepository(Repository):
             self.session.rollback()
             print("Error removing insect photos:", e)
             return 0
+    
+    def remove_timelapse_photos(self):
+        try:
+            insect_photos = self.session.query(self.entity).filter_by(is_insect=False).all()
+            for photo in insect_photos:
+                self.session.delete(photo)
+            self.session.commit()
+            return len(insect_photos)
+        except Exception as e:
+            self.session.rollback()
+            print("Error removing insect photos:", e)
+            return 0

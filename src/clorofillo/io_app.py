@@ -144,6 +144,7 @@ def photo_worker(stop_event):
     photo_service = PlantPhotoService(photo_repository, camera)
 
     last_day = None
+    hours = []
 
     try:
         while not stop_event.is_set():
@@ -163,18 +164,21 @@ def photo_worker(stop_event):
             dt = datetime.now()
             now_hour = dt.hour
             current_day = dt.day
-            hours = []
+            print("now hour: ", now_hour)
             if current_day != last_day:
                 last_day = current_day
+                hours = []
                 for i in range(len(pots)):
                     shot_hours = Utilities.shot_hours(pots[i].configuration.shot_freq) or []
                     hours.append(shot_hours)
+                print("HOURS: ", hours)
             try:
                 for i in range(len(pots)):
                     if i >= len(hours) or not hours[i]:
                         continue
                     if now_hour in hours[i]:
-                        hours[i].pop(0)
+                        
+                        hours[i].remove(now_hour)
                         pi.set_servo_pulsewidth(
                             SERVO_PIN,
                             Utilities.angle_to_pulsewidth(pots[i].configuration.position)
