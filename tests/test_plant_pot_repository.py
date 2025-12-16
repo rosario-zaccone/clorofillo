@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
-from clorofillo.persistence.orm_models import Base, ConfigurationORM, PlantPotORM, MeasurementORM, PlantPhotoORM
+from clorofillo.persistence.orm_models import Base, ConfigurationORM, PlantPotORM, MeasurementORM, PlantPhotoORM, ShotTimeORM
 
 @pytest.fixture
 def in_memory_session():
@@ -17,7 +17,10 @@ def test_insert_plant_pot_with_configuration(in_memory_session):
     config = ConfigurationORM(
         threshold=60.0,
         watering_mode=True,
-        shot_freq=3,
+        shot_freq=[
+            ShotTimeORM(hour=10, minute=0),
+            ShotTimeORM(hour=20, minute=0)
+        ],
         insect_freq=5,
         position=90,
         size=6.5,
@@ -36,7 +39,10 @@ def test_insert_measurement(in_memory_session):
     config = ConfigurationORM(
         threshold=55.0,
         watering_mode=False,
-        shot_freq=2,
+        shot_freq=[
+            ShotTimeORM(hour=10, minute=0),
+            ShotTimeORM(hour=20, minute=0)
+        ],
         insect_freq=4,
         position=80,
         size=7.0,
@@ -60,7 +66,10 @@ def test_insert_plant_photo(in_memory_session):
     config = ConfigurationORM(
         threshold=50.0,
         watering_mode=True,
-        shot_freq=1,
+        shot_freq=[
+            ShotTimeORM(hour=10, minute=0),
+            ShotTimeORM(hour=20, minute=0)
+        ],
         insect_freq=3,
         position=75,
         size=5.0,
@@ -86,7 +95,10 @@ def test_plant_pot_with_multiple_measurements_and_photos(in_memory_session):
     config = ConfigurationORM(
         threshold=60.0,
         watering_mode=True,
-        shot_freq=2,
+        shot_freq=[
+            ShotTimeORM(hour=10, minute=0),
+            ShotTimeORM(hour=20, minute=0)
+        ],
         insect_freq=6,
         position=85,
         size=8.0,

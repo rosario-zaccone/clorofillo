@@ -1,4 +1,4 @@
-from .orm_models import ConfigurationORM
+from .orm_models import ConfigurationORM, ShotTimeORM
 from .repository import Repository
 
 class ConfigurationRepository(Repository):
@@ -25,11 +25,13 @@ class ConfigurationRepository(Repository):
 
         orm_obj.threshold = new_config.threshold
         orm_obj.watering_mode = new_config.watering_mode
-        orm_obj.shot_freq = new_config.shot_freq
         orm_obj.insect_freq = new_config.insect_freq
         orm_obj.position = new_config.position
         orm_obj.plant = new_config.plant
         orm_obj.size = new_config.size
+        orm_obj.shot_freq = [
+            ShotTimeORM(hour=t.hour, minute=t.minute) for t in new_config.shot_freq
+        ]
 
         self.session.commit()
         return orm_obj
