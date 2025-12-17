@@ -33,19 +33,19 @@ class PlantPhotoService:
         return self._repository
 
 
-    def clean_insect_detect(self):
+    def clean_insect_detect(self, pot_id):
         folder_path = 'data/photos/maybe_insect/'
-        for filename in os.listdir(folder_path):
-            file_path = os.path.join(folder_path, filename)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
+        file_path = os.path.join(folder_path, "before_" + str(pot_id) + ".jpg")
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
 
     def _detect_insect_patches_base64(
         self, 
         before_path, 
         after_path, 
-        save_patches=True, 
+        pot_id,
+        timestamp,
         min_area=500,
         max_area=6000,
         max_width=100,
@@ -85,22 +85,17 @@ class PlantPhotoService:
             before_aligned = before.copy()
         
         before_gray = cv2.cvtColor(before_aligned, cv2.COLOR_BGR2GRAY)
-        
-        # --- Differenza immagini ---
         diff = cv2.absdiff(after_gray, before_gray)
         _, thresh = cv2.threshold(diff, 30, 255, cv2.THRESH_BINARY)
-        
-        # Operazioni morfologiche
+    
         kernel = np.ones((3,3), np.uint8)
         thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
         thresh = cv2.dilate(thresh, kernel, iterations=2)
-        
-        # Trova contorni
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         patches_base64 = []
-        patch_dir = "data/photos/test/patch"
-        if save_patches and not os.path.exists(patch_dir):
+        patch_dir = "data/photos/insect/patch"
+        if not os.path.exists(patch_dir):
             os.makedirs(patch_dir)
         
         for i, cnt in enumerate(contours):
@@ -117,16 +112,11 @@ class PlantPhotoService:
             if max_height is not None and h > max_height:
                 continue
             
-            # Ritaglia patch "after"
             patch_after = after[y:y+h, x:x+w]
-            patch_after_pil = Image.fromarray(cv2.cvtColor(patch_after, cv2.COLOR_BGR2RGB))
-            
-            if save_patches:
-                patch_after_pil.save(os.path.join(patch_dir, f"patch_{i}_after.png"))
-            
-            # Converti in base64 e aggiungi all'array
+            patch_after_pil = Image.fromarray(cv2.cvtColor(patch_after, cv2.COLOR_BGR2RGB))  
+            patch_after_pil.save(os.path.join(patch_dir, f"{i}_{pot_id}_{timestamp}.jpg"))
             buffered_after = io.BytesIO()
-            patch_after_pil.save(buffered_after, format="PNG")
+            patch_after_pil.save(buffered_after, format="JPEG")
             base64_after = base64.b64encode(buffered_after.getvalue()).decode("utf-8")
             
             patches_base64.append(base64_after)
@@ -182,7 +172,13 @@ class PlantPhotoService:
         after_img = f"data/photos/maybe_insect/after_{pot_id}.jpg"
         self.camera.take_photo(after_img)
         if os.path.isfile(before_img):
-            patches_b64 = self._detect_insect_patches_base64(before_img, after_img, True)
+            patches_b64 = self._detect_insect_patches_base64(before_img, after_img, pot_id, timestamp)
+            if (patches_b64):
+                # telegram notify redis
+                r = redis.Redis(host="localhost", port=6379, db=0)
+                r.rpush("rasp_to_bot", 4)
+                r.close()
+                '''
             if (patches_b64):
                 for patch in patches_b64:
                     #api call
@@ -213,6 +209,7 @@ class PlantPhotoService:
                         r = redis.Redis(host="localhost", port=6379, db=0)
                         r.rpush("rasp_to_bot", 4)
                         r.close()
+                        '''
                 
                 pass
             os.remove(before_img)
@@ -233,18 +230,3 @@ if __name__ == "__main__":
 
 
     detector = PlantPhotoService(None)
-
-    '''
-    print("📸 Detecting and super-resolving potential insect patches...")
-    patches_b64 = detector.detect_insect_patches_base64(before_img, after_img)
-
-    print(f"Found {len(patches_b64)} patches.")
-    Utilities.show_base64_images(patches_b64)
-
-    
-    if patches_b64:
-        insect_name = detector.call_kindwise_api_with_files([patches_b64[0]])
-        print("Identified insect:", insect_name)
-    else:
-        print("No patches detected.")
-    '''

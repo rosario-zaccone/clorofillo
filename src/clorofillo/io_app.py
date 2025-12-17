@@ -7,7 +7,7 @@ import time
 import redis
 import threading
 import signal
-from datetime import datetime
+from datetime import datetime, time as dt_time
 from dotenv import load_dotenv
 
 import RPi.GPIO as GPIO
@@ -143,11 +143,11 @@ def photo_worker(stop_event):
     photo_repository = PlantPhotoRepository(session)
     photo_service = PlantPhotoService(photo_repository, camera)
 
-    last_day = None
-    hours = []
+    shot = False
 
     try:
         while not stop_event.is_set():
+            print("Im alive\n")
             pots = get_pots(pot_repository)
             try:
                 value = r.lpop("bot_to_rasp")
@@ -162,29 +162,25 @@ def photo_worker(stop_event):
 
             # TIMELAPSE
             dt = datetime.now()
-            now_hour = dt.hour
-            current_day = dt.day
-            print("now hour: ", now_hour)
-            if current_day != last_day:
-                last_day = current_day
-                hours = []
-                for i in range(len(pots)):
-                    shot_hours = Utilities.shot_hours(pots[i].configuration.shot_freq) or []
-                    hours.append(shot_hours)
-                print("HOURS: ", hours)
+            t = dt_time(hour=dt.hour, minute=dt.minute)
+            times = []
+            for i in range(len(pots)):
+                times.append(pots[i].configuration.shot_freq)
             try:
                 for i in range(len(pots)):
-                    if i >= len(hours) or not hours[i]:
+                    if not times[i]:
                         continue
-                    if now_hour in hours[i]:
-                        
-                        hours[i].remove(now_hour)
+                    if t in times[i]:
+                        shot = True
                         pi.set_servo_pulsewidth(
                             SERVO_PIN,
                             Utilities.angle_to_pulsewidth(pots[i].configuration.position)
                         )
                         photo_service.timelapse_shot(i + 1, datetime.now())
-                        time.sleep(2)
+                        time.sleep(1)
+                if (shot):
+                    time.sleep(60)
+                    shot = False;
             except Exception as e:
                 print("Error during timelapse:", e)
 
@@ -193,9 +189,12 @@ def photo_worker(stop_event):
                 freqs = [pots[i].configuration.insect_freq for i in range(len(pots))]
                 angles = [pots[i].configuration.position for i in range(len(pots))]
 
-                if all(f == 0 for f in freqs):
-                    photo_service.clean_insect_detect()
-                else:
+                for i in range(len(pots)):
+                    if freqs[i] == 0:
+                        photo_service.clean_insect_detect(i+1)
+                    
+                
+                if any(f != 0 for f in freqs):
                     max_freq = max(f for f in freqs if f != 0)
                     interval = 60 / max_freq
 

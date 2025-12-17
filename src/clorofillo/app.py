@@ -27,6 +27,7 @@ photo_repository = PlantPhotoRepository(session)
 pot_service = PlantPotService(pot_repository)
 r = redis.Redis(host='localhost', port=6379, db=0)
 CALIB_DIR = "data/calibration"
+PATCH_DIR = "data/photos/insect/patch/"
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -89,19 +90,35 @@ async def notify_manager(application):
                             with open(path, "rb") as f:
                                 await application.bot.send_photo(chat_id=chat_id, photo=f, caption=f"Angle: {angle}°")
 
-            if value == 4: # MOSTRARE ANCHE FOTO OLTRE CHE MESSAGGIO
-                message_text = "⚠️ Insect detected!"
+            elif value == 4:
+                message_text = "⚠️ Possible insect detected!"
                 for chat_id in AUTHORIZED_CHAT_IDS:
-                    await send_telegram_message(application.bot, chat_id, message_text)        
+                    await send_telegram_message(application.bot, chat_id, message_text)
+                    if os.path.exists(PATCH_DIR):
+                        files = [f for f in os.listdir(PATCH_DIR) if f.lower().endswith(".jpg")]
+                        for file in files:
+                            pot_id = file.split("_")[1]
+                            timestamp = file.split("_")[2]
+                            path = os.path.join(PATCH_DIR, file)
+                            with open(path, "rb") as f:
+                                await application.bot.send_photo(
+                                    chat_id=chat_id,
+                                    photo=f,
+                                    caption=f"Pot: {pot_id}, timestamp: {timestamp}"
+                                )
+                            os.remove(path)
+  
                         
         await asyncio.sleep(0.1) 
 
 
+#DEBUG
 @authorized_only
 async def shutdown(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("⚠️ Raspberry Pi is shutting down...")
     # esegue shutdown in background
     os.system("sudo shutdown now")
+
 
 #DEBUG
 @authorized_only
@@ -199,12 +216,13 @@ async def get_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             raise ValueError("ID doesn't exist")
         pot = PlantPot.from_orm(pot_orm)
         response = pot.configuration
+        freqs = [str(elem) for elem in response.shot_freq]
         await update.message.reply_text(
             f"""🌿 Configuration for pot #{pot_id} 🌿
 
 🔧 Watering mode: `{response.watering_mode}`
 💧 Humidity threshold: `{response.threshold}%`
-📸 Timelapse frequency: `{response.shot_freq} shots/day`
+📸 Timelapse times: `{', '.join(freqs)}`
 🐛 Insect detection frequency: `{response.insect_freq} shots/minute`
 📍 Position: `{response.position}°`
 🌱 Plant: `{response.plant}`
@@ -236,6 +254,132 @@ async def get_insect_diary(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         await update.message.reply_text(f"Error: {e}")
 
 @authorized_only
+async def set_threshold(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        if len(context.args) != 2:
+            raise ValueError("Usage: /set_threshold <pot_id> <threshold>")
+        pot_id = int(context.args[0])
+        threshold = float(context.args[1])
+        pot_orm = pot_repository.get_by_id(pot_id)
+        if not pot_orm:
+            raise ValueError("Pot ID not found")
+        conf = Configuration.from_orm(pot_orm.configuration)
+        conf.threshold = threshold
+        conf_repository.update(conf.id, conf.to_orm())
+        await update.message.reply_text(f"✅ Threshold of pot #{pot_id} set to {threshold}%")
+    except Exception as e:
+        await update.message.reply_text(f"Error: {e}")
+
+
+@authorized_only
+async def set_watering_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        if len(context.args) != 2:
+            raise ValueError("Usage: /set_watering_mode <pot_id> <true|false>")
+        pot_id = int(context.args[0])
+        watering_mode = context.args[1].lower() in ['true','1','yes']
+        pot_orm = pot_repository.get_by_id(pot_id)
+        if not pot_orm:
+            raise ValueError("Pot ID not found")
+        conf = Configuration.from_orm(pot_orm.configuration)
+        conf.watering_mode = watering_mode
+        conf_repository.update(conf.id, conf.to_orm())
+        await update.message.reply_text(f"✅ Watering mode of pot #{pot_id} set to {watering_mode}")
+    except Exception as e:
+        await update.message.reply_text(f"Error: {e}")
+
+
+@authorized_only
+async def set_shot_freq(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        if len(context.args) != 2:
+            raise ValueError("Usage: /set_shot_freq <pot_id> <HH:MM,HH:MM,...>")
+        pot_id = int(context.args[0])
+        shot_freq = [x.strip() for x in context.args[1].split(",")]
+        pot_orm = pot_repository.get_by_id(pot_id)
+        if not pot_orm:
+            raise ValueError("Pot ID not found")
+        conf = Configuration.from_orm(pot_orm.configuration)
+        conf.shot_freq = shot_freq
+        conf_repository.update(conf.id, conf.to_orm())
+        await update.message.reply_text(f"✅ Shot frequency of pot #{pot_id} updated: {', '.join(shot_freq)}")
+    except Exception as e:
+        await update.message.reply_text(f"Error: {e}")
+
+
+@authorized_only
+async def set_insect_freq(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        if len(context.args) != 2:
+            raise ValueError("Usage: /set_insect_freq <pot_id> <frequency>")
+        pot_id = int(context.args[0])
+        insect_freq = int(context.args[1])
+        pot_orm = pot_repository.get_by_id(pot_id)
+        if not pot_orm:
+            raise ValueError("Pot ID not found")
+        conf = Configuration.from_orm(pot_orm.configuration)
+        conf.insect_freq = insect_freq
+        conf_repository.update(conf.id, conf.to_orm())
+        await update.message.reply_text(f"✅ Insect detection frequency of pot #{pot_id} set to {insect_freq} shots/min")
+    except Exception as e:
+        await update.message.reply_text(f"Error: {e}")
+
+
+@authorized_only
+async def set_position(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        if len(context.args) != 2:
+            raise ValueError("Usage: /set_position <pot_id> <position>")
+        pot_id = int(context.args[0])
+        position = int(context.args[1])
+        pot_orm = pot_repository.get_by_id(pot_id)
+        if not pot_orm:
+            raise ValueError("Pot ID not found")
+        conf = Configuration.from_orm(pot_orm.configuration)
+        conf.position = position
+        conf_repository.update(conf.id, conf.to_orm())
+        await update.message.reply_text(f"✅ Position of pot #{pot_id} set to {position}°")
+    except Exception as e:
+        await update.message.reply_text(f"Error: {e}")
+
+
+@authorized_only
+async def set_size(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        if len(context.args) != 2:
+            raise ValueError("Usage: /set_size <pot_id> <size>")
+        pot_id = int(context.args[0])
+        size = float(context.args[1])
+        pot_orm = pot_repository.get_by_id(pot_id)
+        if not pot_orm:
+            raise ValueError("Pot ID not found")
+        conf = Configuration.from_orm(pot_orm.configuration)
+        conf.size = size
+        conf_repository.update(conf.id, conf.to_orm())
+        await update.message.reply_text(f"✅ Size of pot #{pot_id} set to {size} L")
+    except Exception as e:
+        await update.message.reply_text(f"Error: {e}")
+
+
+@authorized_only
+async def set_plant(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        if len(context.args) != 2:
+            raise ValueError("Usage: /set_plant <pot_id> <plant_name>")
+        pot_id = int(context.args[0])
+        plant = context.args[1]
+        pot_orm = pot_repository.get_by_id(pot_id)
+        if not pot_orm:
+            raise ValueError("Pot ID not found")
+        conf = Configuration.from_orm(pot_orm.configuration)
+        conf.plant = plant
+        conf_repository.update(conf.id, conf.to_orm())
+        await update.message.reply_text(f"✅ Plant of pot #{pot_id} set to {plant}")
+    except Exception as e:
+        await update.message.reply_text(f"Error: {e}")
+
+
+@authorized_only
 async def set_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         if len(context.args) != 8:
@@ -244,7 +388,7 @@ async def set_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         pot_id = int(id_str)
         threshold = float(threshold_str)
         watering_mode = watering_mode_str.lower() in ['true', '1', 'yes']
-        shot_freq = int(shot_freq_str)
+        shot_freq = [x.strip() for x in shot_freq_str.split(",")] if shot_freq_str else []
         insect_freq = int(insect_freq_str)
         position = int(position_str)
         size = float(size_str)
@@ -283,11 +427,20 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "  • id: pot id (integer)\n"
         "  • watering_mode: true/false (enable/disable automatic watering)\n"
         "  • threshold: humidity threshold in % (float)\n"
-        "  • shot_freq: timelapse shots per day (int)\n"
+        "  • shot_freq: timelapse shots per day (HH:MM,HH:MM,...)\n"
         "  • insect_freq: insect detection frequency (shots per minute) (int)\n"
         "  • position: servo position in degrees (0–180) (int)\n"
         "  • plant: plant name (string)\n"
         "  • size: pot size in liters (float)\n\n"
+
+        "# Individual setters for convenience:\n"
+        "/set_threshold &lt;pot_id&gt; &lt;threshold&gt; - Set humidity threshold\n"
+        "/set_watering_mode &lt;pot_id&gt; &lt;true|false&gt; - Enable/disable watering\n"
+        "/set_shot_freq &lt;pot_id&gt; &lt;HH:MM,HH:MM,...&gt; - Set timelapse shot times\n"
+        "/set_insect_freq &lt;pot_id&gt; &lt;frequency&gt; - Set insect detection frequency (shots/min)\n"
+        "/set_position &lt;pot_id&gt; &lt;position&gt; - Set servo position (0–180°)\n"
+        "/set_size &lt;pot_id&gt; &lt;size&gt; - Set pot size in liters\n"
+        "/set_plant &lt;pot_id&gt; &lt;plant_name&gt; - Set plant name\n\n"
 
         "/timelapse &lt;pot_id&gt; &lt;from YYYY-MM-DD&gt; &lt;to YYYY-MM-DD&gt; &lt;fps&gt;\n"
         "  • Example: /timelapse 1 2025-01-01 2025-01-31 24\n\n"
@@ -299,6 +452,7 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
     await update.message.reply_text(help_text, parse_mode=ParseMode.HTML)
+
 
 
 
@@ -339,7 +493,7 @@ def main():
 
     application.add_handler(CommandHandler(["start", "help"], start))
     application.add_handler(CommandHandler("settings", get_configuration))
-    application.add_handler(CommandHandler("setsettings", set_configuration))
+    application.add_handler(CommandHandler("set_settings", set_configuration))
     application.add_handler(CommandHandler("timelapse", get_timelapse))
     application.add_handler(CommandHandler("calibrate", calibrate))
     application.add_handler(CommandHandler("diary", get_insect_diary))
@@ -347,6 +501,14 @@ def main():
     application.add_handler(CommandHandler("cleantimelapse", clean_timelapse_photos))
     application.add_handler(CommandHandler("cleaninsect", clean_insect_photos))
     application.add_handler(CommandHandler("shutdown", shutdown))
+    application.add_handler(CommandHandler("set_threshold", set_threshold))
+    application.add_handler(CommandHandler("set_watering_mode", set_watering_mode))
+    application.add_handler(CommandHandler("set_shot_freq", set_shot_freq))
+    application.add_handler(CommandHandler("set_insect_freq", set_insect_freq))
+    application.add_handler(CommandHandler("set_position", set_position))
+    application.add_handler(CommandHandler("set_size", set_size))
+    application.add_handler(CommandHandler("set_plant", set_plant))
+
     application.run_polling()
 
 
