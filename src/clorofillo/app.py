@@ -111,6 +111,17 @@ async def notify_manager(application):
                         
         await asyncio.sleep(0.1) 
 
+# DEBUG
+@authorized_only
+async def kill_io_app(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text("⚠️ Stopping io_app.py...")
+    os.system("/home/rosario/Documents/Projects/clorofillo/kill_io.sh &")
+
+# DEBUG
+@authorized_only
+async def start_io_app(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text("⚠️ Starting io_app.py...")
+    os.system("/home/rosario/Documents/Projects/clorofillo/start_io.sh &")
 
 #DEBUG
 @authorized_only
@@ -508,6 +519,8 @@ def main():
     application.add_handler(CommandHandler("set_position", set_position))
     application.add_handler(CommandHandler("set_size", set_size))
     application.add_handler(CommandHandler("set_plant", set_plant))
+    application.add_handler(CommandHandler("killio", kill_io_app))
+    application.add_handler(CommandHandler("startio", start_io_app))
 
     application.run_polling()
 
