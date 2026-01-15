@@ -23,6 +23,7 @@ pyserial = "^3.5"
 redis = "^6.4.0"
 reportlab = "^4.4.4"
 scikit-image = "^0.25.2"
+scikit-learn = "^1.8.0"
 
 
 [build-system]

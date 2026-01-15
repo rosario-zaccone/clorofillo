@@ -147,16 +147,16 @@ def photo_worker(stop_event):
 
     try:
         while not stop_event.is_set():
-            print("Im alive\n")
             pots = get_pots(pot_repository)
             try:
                 value = r.lpop("bot_to_rasp")
                 if value is not None and int(value) == 1:
                     try:
                         pot_service.calibrate(camera, pi, SERVO_PIN, conf_repository)
-                        r.rpush("rasp_to_bot", 2)
-                    except Exception:
-                        r.rpush("rasp_to_bot", 3)
+                        r.rpush("rasp_to_bot", "2")  # calibrazione OK
+                    except Exception as e:
+                        r.rpush("rasp_to_bot", f"3|{str(e)}")
+
             except Exception as e:
                 print("Error reading Redis for calibration:", e)
 

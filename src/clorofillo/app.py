@@ -72,13 +72,21 @@ async def notify_manager(application):
     while True:
         message = await loop.run_in_executor(None, r.lpop, "rasp_to_bot")
         if message:
-            value = int(message)
-            if value == 1:
+            if isinstance(message, bytes):
+                message = message.decode('utf-8')
+            if "|" in message:
+                code_str, error_msg = message.split("|", 1)
+                code = int(code_str)
+            else:
+                code = int(message)
+                error_msg = None
+
+            if code == 1:
                 message_text = "⚠️ Empty tank!"
                 for chat_id in AUTHORIZED_CHAT_IDS:
                     await send_telegram_message(application.bot, chat_id, message_text)
-            elif value in (2, 3):
-                message_text = "⚠️ Calibration finished!" if value == 2 else "⚠️ Calibration failed!"
+            elif code in (2, 3):
+                message_text = "⚠️ Calibration finished!" if code == 2 else f"⚠️ {error_msg}"
                 for chat_id in AUTHORIZED_CHAT_IDS:
                     await send_telegram_message(application.bot, chat_id, message_text)
                     if os.path.exists(CALIB_DIR):
@@ -90,7 +98,7 @@ async def notify_manager(application):
                             with open(path, "rb") as f:
                                 await application.bot.send_photo(chat_id=chat_id, photo=f, caption=f"Angle: {angle}°")
 
-            elif value == 4:
+            elif code == 4:
                 message_text = "⚠️ Possible insect detected!"
                 for chat_id in AUTHORIZED_CHAT_IDS:
                     await send_telegram_message(application.bot, chat_id, message_text)
