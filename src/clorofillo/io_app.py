@@ -25,25 +25,23 @@ from clorofillo.service.utilities import Utilities
 from clorofillo.service.plant_pot_service import PlantPotService
 from clorofillo.service.plant_photo_service import PlantPhotoService
 
-# -----------------------------
+# Load environment variables
+load_dotenv()
+SERVO_PIN = int(os.getenv("SERVO_PIN", 17))
+PUMP_ONE_PIN = int(os.getenv("PUMP_ONE_PIN", 4))
+PUMP_TWO_PIN = int(os.getenv("PUMP_TWO_PIN", 23))
+PUMP_THREE_PIN = int(os.getenv("PUMP_THREE_PIN", 24))
+FLOW_RATE = float(os.getenv("FLOW_RATE", 0.05)) # liters per second
+
 # GPIO and hardware setup
-# -----------------------------
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
-
-SERVO_PIN = 17
-PUMP_ONE_PIN = 4
-PUMP_TWO_PIN = 23
-PUMP_THREE_PIN = 24
-FLOW_RATE = 0.05  # liters per second
 
 GPIO.setup(PUMP_ONE_PIN, GPIO.OUT)
 GPIO.setup(PUMP_TWO_PIN, GPIO.OUT)
 GPIO.setup(PUMP_THREE_PIN, GPIO.OUT)
 pi = pigpio.pi()
 
-# Load environment variables
-load_dotenv()
 
 # Camera and database setup
 camera = Camera()

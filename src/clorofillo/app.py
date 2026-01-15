@@ -20,8 +20,11 @@ from clorofillo.service.plant_pot_service import PlantPotService
 from clorofillo.service.plant_photo_service import PlantPhotoService
 from clorofillo.persistence.orm_models import *
 from telegram.ext import MessageHandler, filters
+
+
 load_dotenv()
 
+# SQLite session, repository and service objects
 engine = create_engine('sqlite:///data/db.sqlite', echo=False, future=True)
 SessionLocal = sessionmaker(bind=engine)
 session = SessionLocal()
@@ -30,9 +33,11 @@ pot_repository = PlantPotRepository(session)
 photo_repository = PlantPhotoRepository(session)
 pot_service = PlantPotService(pot_repository)
 photo_service = PlantPhotoService(photo_repository, None)
+
+CALIB_DIR = os.getenv("CALIB_DIR", "data/calibration")
+PATCH_DIR = os.getenv("PATCH_DIR", "data/photos/sighting/patch/")
+
 r = redis.Redis(host='localhost', port=6379, db=0)
-CALIB_DIR = "data/calibration"
-PATCH_DIR = "data/photos/sighting/patch/"
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,19 +47,9 @@ AUTHORIZED_CHAT_IDS = set()
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     AUTHORIZED_CHAT_IDS.add(chat_id)
-
-    # Nice UI: quick-reply keyboard with the main bot commands
-    keyboard = [
-        ["/settings", "/setsettings", "/timelapse"],
-        ["/calibrate", "/diary", "/info"],
-        ["/help", "/start"]
-    ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-
     await update.message.reply_text(
         "Hi! You are authorized. Use the keyboard below or type a command.\n\n"
-        "Tip: use /info to see command details and parameter meanings.",
-        reply_markup=reply_markup
+        "Tip: use /info to see command details and parameter meanings."
     )
 
 def authorized_only(func):
@@ -122,13 +117,11 @@ async def notify_manager(application):
                             os.remove(path)
         await asyncio.sleep(0.1) 
 
-# DEBUG
 @authorized_only
 async def kill_io_app(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("⚠️ Stopping io_app.py...")
     os.system("/home/rosario/Documents/Projects/clorofillo/kill_io.sh &")
 
-# DEBUG
 @authorized_only
 async def start_io_app(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("⚠️ Starting io_app.py...")
@@ -435,6 +428,7 @@ async def calibrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     r.rpush("bot_to_rasp", 1)
     await update.message.reply_text("Calibration started!")
 
+#TODO update info
 @authorized_only
 async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     help_text = (
@@ -593,8 +587,8 @@ def main():
     application.add_handler(CommandHandler("set_plant", set_plant))
     application.add_handler(CommandHandler("killio", kill_io_app))
     application.add_handler(CommandHandler("startio", start_io_app))
-    #application.add_handler(MessageHandler(filters.TEXT, save_sighting))
-    application.add_handler(MessageHandler(filters.TEXT, identify_insect))
+    application.add_handler(MessageHandler(filters.TEXT, save_sighting))
+    #application.add_handler(MessageHandler(filters.TEXT, identify_insect))
     application.run_polling()
 
 
