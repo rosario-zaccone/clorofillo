@@ -3,12 +3,12 @@ from clorofillo.persistence.orm_models import ConfigurationORM
 from datetime import time
 
 class Configuration:
-    def __init__(self, threshold: float, watering_mode: bool, shot_freq: list, insect_freq: int, position: int, size: float, plant: str, id: int = None):
+    def __init__(self, threshold: float, watering_mode: bool, shot_freq: list, sighting_freq: int, position: int, size: float, plant: str, id: int = None):
         self._id = id
         self.threshold = threshold
         self.watering_mode = watering_mode
         self.shot_freq = shot_freq
-        self.insect_freq = insect_freq
+        self.sighting_freq = sighting_freq
         self.position = position
         self.size = size
         self.plant = plant
@@ -82,16 +82,16 @@ class Configuration:
 
 
     @property
-    def insect_freq(self):
-        return self._insect_freq
+    def sighting_freq(self):
+        return self._sighting_freq
     
-    @insect_freq.setter
-    def insect_freq(self, value):
+    @sighting_freq.setter
+    def sighting_freq(self, value):
         if not isinstance(value, int):
-            raise ValueError("Insect frequency must be an integer.")
+            raise ValueError("sighting frequency must be an integer.")
         if not (value==0 or 3 <= value <= 12):
-            raise ValueError("Insect frequency must be 0 or between 3 and 12 shots per minute.")
-        self._insect_freq = value
+            raise ValueError("sighting frequency must be 0 or between 3 and 12 shots per minute.")
+        self._sighting_freq = value
 
     @property
     def position(self):
@@ -110,7 +110,7 @@ class Configuration:
             threshold=orm_obj.threshold,
             watering_mode=orm_obj.watering_mode,
             shot_freq=shot_list,
-            insect_freq=orm_obj.insect_freq,
+            sighting_freq=orm_obj.sighting_freq,
             position=orm_obj.position,
             size=orm_obj.size,
             plant=orm_obj.plant,
@@ -121,7 +121,7 @@ class Configuration:
         orm = ConfigurationORM(
             threshold=self.threshold,
             watering_mode=self.watering_mode,
-            insect_freq=self.insect_freq,
+            sighting_freq=self.sighting_freq,
             position=self.position,
             size=self.size,
             plant=self.plant
@@ -137,6 +137,6 @@ class Configuration:
             f"threshold={self.threshold}, "
             f"watering_mode={self.watering_mode}, "
             f"shot_freq={self.shot_freq}, "
-            f"insect_freq={self.insect_freq},"
+            f"sighting_freq={self.sighting_freq},"
             f"position={self.position})"
         )

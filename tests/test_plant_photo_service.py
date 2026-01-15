@@ -6,11 +6,10 @@ import pytest
 from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from unittest.mock import patch, MagicMock
-from clorofillo.persistence.orm_models import Base, PlantPotORM
+from unittest.mock import MagicMock
+from clorofillo.persistence.orm_models import Base
 from clorofillo.persistence.plant_photo_repository import PlantPhotoRepository
-from clorofillo.model.plant_photo import PlantPhoto
-from clorofillo.business.plant_photo_service import PlantPhotoService
+from clorofillo.service.plant_photo_service import PlantPhotoService
 
 
 # Fixture per il DB in-memory

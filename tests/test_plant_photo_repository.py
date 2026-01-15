@@ -4,8 +4,6 @@ from clorofillo.persistence.plant_photo_repository import PlantPhotoRepository
 from clorofillo.model.plant_photo import PlantPhoto
 from sqlalchemy.orm import sessionmaker
 from clorofillo.persistence.orm_models import *
-from clorofillo.persistence.configuration_repository import ConfigurationRepository
-from clorofillo.model.configuration import Configuration
 
 @pytest.fixture
 def in_memory_session():
@@ -29,7 +27,7 @@ def test_insert_and_get_plant_photo(in_memory_session, plant_pot):
     timestamp = datetime.now()
     photo_domain = PlantPhoto(
         timestamp=timestamp,
-        is_insect=True,
+        is_sighting=True,
         path='/path/to/photo.jpg'
     )
 
@@ -44,7 +42,7 @@ def test_insert_and_get_plant_photo(in_memory_session, plant_pot):
 
     assert loaded_domain.id == photo_orm.id
     assert loaded_domain.timestamp == timestamp
-    assert loaded_domain.is_insect is True
+    assert loaded_domain.is_sighting is True
     assert loaded_domain.path == '/path/to/photo.jpg'
 
 def test_get_plant_photo_not_found(in_memory_session):
@@ -54,8 +52,8 @@ def test_get_plant_photo_not_found(in_memory_session):
 def test_get_all_plant_photos(in_memory_session, plant_pot):
     repo = PlantPhotoRepository(in_memory_session)
 
-    photo1 = PlantPhoto(timestamp=datetime.now(), is_insect=False, path='a.jpg').to_orm(plant_pot_id=plant_pot.id)
-    photo2 = PlantPhoto(timestamp=datetime.now(), is_insect=True, path='b.jpg').to_orm(plant_pot_id=plant_pot.id)
+    photo1 = PlantPhoto(timestamp=datetime.now(), is_sighting=False, path='a.jpg').to_orm(plant_pot_id=plant_pot.id)
+    photo2 = PlantPhoto(timestamp=datetime.now(), is_sighting=True, path='b.jpg').to_orm(plant_pot_id=plant_pot.id)
 
     repo.insert(photo1)
     repo.insert(photo2)
@@ -72,7 +70,7 @@ def test_remove_plant_photo(in_memory_session, plant_pot):
 
     photo_domain = PlantPhoto(
         timestamp=datetime.now(),
-        is_insect=True,
+        is_sighting=True,
         path='/path/to/photo.jpg'
     )
 

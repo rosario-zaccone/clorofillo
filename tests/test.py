@@ -9,7 +9,7 @@ from clorofillo.model.plant_pot import PlantPot
 from clorofillo.model.configuration import Configuration
 from clorofillo.model.measurement import Measurement
 from clorofillo.model.plant_photo import PlantPhoto
-from clorofillo.business.plant_pot_service import PlantPotService
+from clorofillo.service.plant_pot_service import PlantPotService
 
 # Add the src path to sys.path if not already there
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -32,7 +32,7 @@ def main():
         threshold=55.0,
         watering_mode=True,
         shot_freq=2,
-        insect_freq=5,
+        sighting_freq=5,
         position=88,
         size=4.5,        # Add size
         plant="Primula"  # Add plant
@@ -42,7 +42,7 @@ def main():
         threshold=60.0,
         watering_mode=True,
         shot_freq=3,
-        insect_freq=6,
+        sighting_freq=6,
         position=90,
         size=6.0,        # Add size
         plant="Tulip"    # Add plant
@@ -52,7 +52,7 @@ def main():
         threshold=50.0,
         watering_mode=False,
         shot_freq=1,
-        insect_freq=4,
+        sighting_freq=4,
         position=80,
         size=7.2,        # Add size
         plant="Rose"     # Add plant

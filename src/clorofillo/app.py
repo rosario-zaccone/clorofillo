@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import logging
-import os, time
+import os, re, io
+import base64
+from PIL import Image
 import asyncio, redis
 from telegram.constants import ParseMode
 from datetime import datetime
@@ -14,8 +16,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from clorofillo.model.configuration import Configuration
 from clorofillo.model.plant_pot import PlantPot
-from clorofillo.business.plant_pot_service import PlantPotService
+from clorofillo.service.plant_pot_service import PlantPotService
+from clorofillo.service.plant_photo_service import PlantPhotoService
 from clorofillo.persistence.orm_models import *
+from telegram.ext import MessageHandler, filters
 load_dotenv()
 
 engine = create_engine('sqlite:///data/db.sqlite', echo=False, future=True)
@@ -25,9 +29,10 @@ conf_repository = ConfigurationRepository(session)
 pot_repository = PlantPotRepository(session)
 photo_repository = PlantPhotoRepository(session)
 pot_service = PlantPotService(pot_repository)
+photo_service = PlantPhotoService(photo_repository, None)
 r = redis.Redis(host='localhost', port=6379, db=0)
 CALIB_DIR = "data/calibration"
-PATCH_DIR = "data/photos/insect/patch/"
+PATCH_DIR = "data/photos/sighting/patch/"
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -99,14 +104,14 @@ async def notify_manager(application):
                                 await application.bot.send_photo(chat_id=chat_id, photo=f, caption=f"Angle: {angle}°")
 
             elif code == 4:
-                message_text = "⚠️ Possible insect detected!"
+                message_text = "⚠️ Possible sighting detected!"
                 for chat_id in AUTHORIZED_CHAT_IDS:
                     await send_telegram_message(application.bot, chat_id, message_text)
                     if os.path.exists(PATCH_DIR):
                         files = [f for f in os.listdir(PATCH_DIR) if f.lower().endswith(".jpg")]
                         for file in files:
                             pot_id = file.split("_")[1]
-                            timestamp = file.split("_")[2]
+                            timestamp = (file.split("_")[2]).split(".jpg")[0]
                             path = os.path.join(PATCH_DIR, file)
                             with open(path, "rb") as f:
                                 await application.bot.send_photo(
@@ -115,8 +120,6 @@ async def notify_manager(application):
                                     caption=f"Pot: {pot_id}, timestamp: {timestamp}"
                                 )
                             os.remove(path)
-  
-                        
         await asyncio.sleep(0.1) 
 
 # DEBUG
@@ -141,13 +144,13 @@ async def shutdown(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 #DEBUG
 @authorized_only
-async def clean_insect_photos(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def clean_sighting_photos(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         # Remove from database
-        count = photo_repository.remove_insect_photos()
+        count = photo_repository.remove_sighting_photos()
 
         # Remove files from disk
-        folders = ["data/photos/insect", "data/photos/test/patch"]
+        folders = ["data/photos/sighting", "data/photos/test/patch"]
         removed_files = 0
 
         for folder in folders:
@@ -162,12 +165,12 @@ async def clean_insect_photos(update: Update, context: ContextTypes.DEFAULT_TYPE
                             print(f"Failed to remove {file_path}: {e}")
 
         await update.message.reply_text(
-            f"✅ Deleted {count} insect photos from the database.\n"
+            f"✅ Deleted {count} sighting photos from the database.\n"
             f"🗑️ Removed {removed_files} files from the file system."
         )
 
     except Exception as e:
-        await update.message.reply_text(f"Error deleting insect photos: {e}")
+        await update.message.reply_text(f"Error deleting sighting photos: {e}")
 
 #DEBUG
 @authorized_only
@@ -242,7 +245,7 @@ async def get_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 🔧 Watering mode: `{response.watering_mode}`
 💧 Humidity threshold: `{response.threshold}%`
 📸 Timelapse times: `{', '.join(freqs)}`
-🐛 Insect detection frequency: `{response.insect_freq} shots/minute`
+🐛 Sighting detection frequency: `{response.sighting_freq} shots/minute`
 📍 Position: `{response.position}°`
 🌱 Plant: `{response.plant}`
 🌿 Size: `{response.size} L`
@@ -256,7 +259,7 @@ async def get_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 
 @authorized_only
-async def get_insect_diary(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def get_sighting_diary(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         if len(context.args) != 1:
             raise ValueError("Wrong number of arguments")
@@ -264,8 +267,8 @@ async def get_insect_diary(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         pot_orm = pot_repository.get_by_id(pot_id)
         if pot_orm is None:
             raise ValueError("ID doesn't exist")
-        path = pot_service.insect_diary(pot_id)
-        await update.message.reply_text("🎬 Your insect diary is ready!")
+        path = pot_service.sighting_diary(pot_id)
+        await update.message.reply_text("🎬 Your sighting diary is ready!")
         await update.message.reply_document(document=open(path, "rb"), caption="🌱 Insect diary")
     except ValueError as ve:
         await update.message.reply_text(f"Error: {str(ve)}")
@@ -327,19 +330,19 @@ async def set_shot_freq(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 @authorized_only
-async def set_insect_freq(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def set_sighting_freq(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         if len(context.args) != 2:
-            raise ValueError("Usage: /set_insect_freq <pot_id> <frequency>")
+            raise ValueError("Usage: /set_sighting_freq <pot_id> <frequency>")
         pot_id = int(context.args[0])
-        insect_freq = int(context.args[1])
+        sighting_freq = int(context.args[1])
         pot_orm = pot_repository.get_by_id(pot_id)
         if not pot_orm:
             raise ValueError("Pot ID not found")
         conf = Configuration.from_orm(pot_orm.configuration)
-        conf.insect_freq = insect_freq
+        conf.sighting_freq = sighting_freq
         conf_repository.update(conf.id, conf.to_orm())
-        await update.message.reply_text(f"✅ Insect detection frequency of pot #{pot_id} set to {insect_freq} shots/min")
+        await update.message.reply_text(f"✅ Sighting detection frequency of pot #{pot_id} set to {sighting_freq} shots/min")
     except Exception as e:
         await update.message.reply_text(f"Error: {e}")
 
@@ -403,12 +406,12 @@ async def set_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     try:
         if len(context.args) != 8:
             raise ValueError("Wrong number of arguments")
-        id_str, watering_mode_str, threshold_str, shot_freq_str, insect_freq_str, position_str, plant_str, size_str = context.args
+        id_str, watering_mode_str, threshold_str, shot_freq_str, sighting_freq_str, position_str, plant_str, size_str = context.args
         pot_id = int(id_str)
         threshold = float(threshold_str)
         watering_mode = watering_mode_str.lower() in ['true', '1', 'yes']
         shot_freq = [x.strip() for x in shot_freq_str.split(",")] if shot_freq_str else []
-        insect_freq = int(insect_freq_str)
+        sighting_freq = int(sighting_freq_str)
         position = int(position_str)
         size = float(size_str)
         plant = plant_str
@@ -417,7 +420,7 @@ async def set_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             raise ValueError("ID doesn't exist")
         pot = PlantPot.from_orm(pot_orm)
         conf_id = pot.configuration.id
-        configuration = Configuration(threshold, watering_mode, shot_freq, insect_freq, position, size, plant)
+        configuration = Configuration(threshold, watering_mode, shot_freq, sighting_freq, position, size, plant)
         conf_repository.update(conf_id, configuration.to_orm())
         conf_repository.session.commit()
         await update.message.reply_text(f"Configuration of pot #{pot_id} updated!")
@@ -442,12 +445,12 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "/settings &lt;pot_id&gt; - Show configuration for pot (example: /settings 1)\n\n"
 
         "/setsettings &lt;id&gt; &lt;watering_mode&gt; &lt;threshold&gt; "
-        "&lt;shot_freq&gt; &lt;insect_freq&gt; &lt;position&gt; &lt;plant&gt; &lt;size&gt;\n"
+        "&lt;shot_freq&gt; &lt;sighting_freq&gt; &lt;position&gt; &lt;plant&gt; &lt;size&gt;\n"
         "  • id: pot id (integer)\n"
         "  • watering_mode: true/false (enable/disable automatic watering)\n"
         "  • threshold: humidity threshold in % (float)\n"
         "  • shot_freq: timelapse shots per day (HH:MM,HH:MM,...)\n"
-        "  • insect_freq: insect detection frequency (shots per minute) (int)\n"
+        "  • sighting_freq: sighting detection frequency (shots per minute) (int)\n"
         "  • position: servo position in degrees (0–180) (int)\n"
         "  • plant: plant name (string)\n"
         "  • size: pot size in liters (float)\n\n"
@@ -456,7 +459,7 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "/set_threshold &lt;pot_id&gt; &lt;threshold&gt; - Set humidity threshold\n"
         "/set_watering_mode &lt;pot_id&gt; &lt;true|false&gt; - Enable/disable watering\n"
         "/set_shot_freq &lt;pot_id&gt; &lt;HH:MM,HH:MM,...&gt; - Set timelapse shot times\n"
-        "/set_insect_freq &lt;pot_id&gt; &lt;frequency&gt; - Set insect detection frequency (shots/min)\n"
+        "/set_sighting_freq &lt;pot_id&gt; &lt;frequency&gt; - Set sighting detection frequency (shots/min)\n"
         "/set_position &lt;pot_id&gt; &lt;position&gt; - Set servo position (0–180°)\n"
         "/set_size &lt;pot_id&gt; &lt;size&gt; - Set pot size in liters\n"
         "/set_plant &lt;pot_id&gt; &lt;plant_name&gt; - Set plant name\n\n"
@@ -465,7 +468,7 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "  • Example: /timelapse 1 2025-01-01 2025-01-31 24\n\n"
 
         "/calibrate - Start camera+servo calibration (you will receive a notification when finished)\n"
-        "/diary &lt;pot_id&gt; - Get the insect diary for the pot\n\n"
+        "/diary &lt;pot_id&gt; - Get the sighting diary for the pot\n\n"
 
         "Use the keyboard buttons for quick access to these commands."
     )
@@ -473,7 +476,68 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(help_text, parse_mode=ParseMode.HTML)
 
 
+@authorized_only
+async def save_sighting(update, context):
+    msg = update.message
+    if (
+        msg and
+        msg.text and
+        msg.text.startswith("/savesighting") and
+        msg.reply_to_message and
+        msg.reply_to_message.photo
+    ):
+        parts = msg.text.split(" ", 1)
+        description = parts[1] if len(parts) > 1 else "sighting"
 
+        description = description.lower().strip()
+        description = re.sub(r"\s+", "_", description)
+        description = re.sub(r"[^a-z0-9_]", "", description)
+
+        original_caption = str(msg.reply_to_message.caption or "")
+
+        photo_file = await msg.reply_to_message.photo[-1].get_file()
+
+        folder = "data/photos/sighting"
+        os.makedirs(folder, exist_ok=True)
+
+        timestamp_str = original_caption.split(",")[1].split(" timestamp: ")[1]
+        pot_id = original_caption.split(",")[0].split("Pot: ")[1]
+
+        dt = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f")
+        safe_timestamp = dt.strftime("%Y-%m-%d_%H-%M-%S")
+
+        filename = f"{pot_id}_{description}_{safe_timestamp}.jpg"
+        file_path = os.path.join(folder, filename)
+
+        await photo_service.add_sighting(photo_file, pot_id, dt, file_path)
+
+        await update.message.reply_text(f"Sighting saved: {filename}")
+
+@authorized_only
+async def identify_insect(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg = update.message
+    if not (msg and msg.text and msg.text.strip().startswith("/identifyinsect") and 
+            msg.reply_to_message and msg.reply_to_message.photo):
+        await update.message.reply_text("⚠️ Use /identifyinsect only as a reply to a photo.")
+        return
+
+    try:
+        photo_file = await msg.reply_to_message.photo[-1].get_file()
+        bytes_io = io.BytesIO()
+        await photo_file.download_to_memory(out=bytes_io)
+        bytes_io.seek(0)
+        img = Image.open(bytes_io)
+        out_buf = io.BytesIO()
+        img.save(out_buf, format="JPEG")
+        patch_base64 = base64.b64encode(out_buf.getvalue()).decode("utf-8")
+        insect_name = photo_service.detect_insect([patch_base64])
+        if insect_name:
+            await update.message.reply_text(f"🔍 Insect identified: {insect_name}")
+        else:
+            await update.message.reply_text("❓ No insect identified with sufficient confidence.")
+
+    except Exception as ex:
+        await update.message.reply_text(f"⚠️ Error identifying insect: {ex}")
 
 
 async def post_init(application: Application):
@@ -488,7 +552,7 @@ async def post_init(application: Application):
         BotCommand("setsettings", "Update configuration for a pot"),
         BotCommand("timelapse", "Create a timelapse video for a pot"),
         BotCommand("calibrate", "Start calibration procedure"),
-        BotCommand("diary", "Get insect diary for a pot"),
+        BotCommand("diary", "Get sighting diary for a pot"),
         BotCommand("info", "Show commands and parameter meanings"),
     ]
     try:
@@ -515,21 +579,22 @@ def main():
     application.add_handler(CommandHandler("set_settings", set_configuration))
     application.add_handler(CommandHandler("timelapse", get_timelapse))
     application.add_handler(CommandHandler("calibrate", calibrate))
-    application.add_handler(CommandHandler("diary", get_insect_diary))
+    application.add_handler(CommandHandler("diary", get_sighting_diary))
     application.add_handler(CommandHandler("info", info))
     application.add_handler(CommandHandler("cleantimelapse", clean_timelapse_photos))
-    application.add_handler(CommandHandler("cleaninsect", clean_insect_photos))
+    application.add_handler(CommandHandler("cleansighting", clean_sighting_photos))
     application.add_handler(CommandHandler("shutdown", shutdown))
     application.add_handler(CommandHandler("set_threshold", set_threshold))
     application.add_handler(CommandHandler("set_watering_mode", set_watering_mode))
     application.add_handler(CommandHandler("set_shot_freq", set_shot_freq))
-    application.add_handler(CommandHandler("set_insect_freq", set_insect_freq))
+    application.add_handler(CommandHandler("set_sighting_freq", set_sighting_freq))
     application.add_handler(CommandHandler("set_position", set_position))
     application.add_handler(CommandHandler("set_size", set_size))
     application.add_handler(CommandHandler("set_plant", set_plant))
     application.add_handler(CommandHandler("killio", kill_io_app))
     application.add_handler(CommandHandler("startio", start_io_app))
-
+    #application.add_handler(MessageHandler(filters.TEXT, save_sighting))
+    application.add_handler(MessageHandler(filters.TEXT, identify_insect))
     application.run_polling()
 
 

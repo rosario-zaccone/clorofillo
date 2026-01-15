@@ -1,7 +1,6 @@
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import IntegrityError
 from clorofillo.persistence.orm_models import Base
 from clorofillo.persistence.configuration_repository import ConfigurationRepository
 from clorofillo.model.configuration import Configuration
@@ -23,7 +22,7 @@ def config_domain_valid():
         threshold=60.0,
         watering_mode=True,
         shot_freq=["08:00", "12:00", "18:00"], 
-        insect_freq=8,
+        sighting_freq=8,
         position=88,
         size=10.5,
         plant="Tomato"
@@ -48,7 +47,7 @@ def test_insert_and_get_by_id(in_memory_session, config_orm):
     assert loaded_domain.watering_mode == config_orm.watering_mode
     assert [ (t.hour, t.minute) for t in loaded_domain.shot_freq ] == [
     (st.hour, st.minute) for st in config_orm.shot_freq ]
-    assert loaded_domain.insect_freq == config_orm.insect_freq
+    assert loaded_domain.sighting_freq == config_orm.sighting_freq
     assert loaded_domain.position == config_orm.position
     assert loaded_domain.size == config_orm.size
     assert loaded_domain.plant == config_orm.plant
@@ -61,7 +60,7 @@ def test_get_all(in_memory_session, config_orm):
     threshold=50.0,
     watering_mode=False,
     shot_freq=["09:00", "13:00", "17:00", "21:00"],
-    insect_freq=10,
+    sighting_freq=10,
     position=99,
     size=12.5,
     plant="Cucumber"

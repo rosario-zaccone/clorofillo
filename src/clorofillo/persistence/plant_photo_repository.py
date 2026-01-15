@@ -18,26 +18,26 @@ class PlantPhotoRepository(Repository):
         self.session.delete(entity)
 
     #DEBUG
-    def remove_insect_photos(self):
+    def remove_sighting_photos(self):
         try:
-            insect_photos = self.session.query(self.entity).filter_by(is_insect=True).all()
-            for photo in insect_photos:
+            sighting_photos = self.session.query(self.entity).filter_by(is_sighting=True).all()
+            for photo in sighting_photos:
                 self.session.delete(photo)
             self.session.commit()
-            return len(insect_photos)
+            return len(sighting_photos)
         except Exception as e:
             self.session.rollback()
-            print("Error removing insect photos:", e)
+            print("Error removing sighting photos:", e)
             return 0
     
     def remove_timelapse_photos(self):
         try:
-            insect_photos = self.session.query(self.entity).filter_by(is_insect=False).all()
-            for photo in insect_photos:
+            sighting_photos = self.session.query(self.entity).filter_by(is_sighting=False).all()
+            for photo in sighting_photos:
                 self.session.delete(photo)
             self.session.commit()
-            return len(insect_photos)
+            return len(sighting_photos)
         except Exception as e:
             self.session.rollback()
-            print("Error removing insect photos:", e)
+            print("Error removing sighting photos:", e)
             return 0

@@ -25,7 +25,7 @@ class ConfigurationRepository(Repository):
 
         orm_obj.threshold = new_config.threshold
         orm_obj.watering_mode = new_config.watering_mode
-        orm_obj.insect_freq = new_config.insect_freq
+        orm_obj.sighting_freq = new_config.sighting_freq
         orm_obj.position = new_config.position
         orm_obj.plant = new_config.plant
         orm_obj.size = new_config.size

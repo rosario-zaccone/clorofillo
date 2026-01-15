@@ -1,16 +1,18 @@
-from clorofillo.model.plant_pot import PlantPot, PlantPhoto
-from moviepy import ImageSequenceClip
-from clorofillo.persistence.plant_pot_repository import PlantPotRepository
+import os, re
 from time import sleep
-from clorofillo.business.utilities import Utilities
+
+
 import cv2
-from reportlab.pdfgen import canvas
+from moviepy import ImageSequenceClip
+from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.utils import ImageReader
-from reportlab.lib import colors
-from reportlab.lib.units import mm
-import os
-import re
+from reportlab.pdfgen import canvas
+
+from clorofillo.model.plant_pot import PlantPhoto, PlantPot
+from clorofillo.persistence.plant_pot_repository import PlantPotRepository
+from clorofillo.service.utilities import Utilities
+
 
 class PlantPotService:
     def __init__(self, repository: PlantPotRepository):
@@ -36,16 +38,16 @@ class PlantPotService:
         clip.write_videofile(output_path)
         
 
-    def insect_diary(self, id):
+    def sighting_diary(self, id):
         pot = PlantPot.from_orm(self._repository.get_by_id(id))
         if pot is None:
             raise Exception("Invalid id")
 
-        photos = pot.get_insect_photos()
+        photos = pot.get_sighting_photos()
         photos_filenames = [photo.path for photo in photos]
 
         if not photos_filenames:
-            raise Exception("No insect photos found for this plant pot.")
+            raise Exception("No sighting photos found for this plant pot.")
 
         output_path = f"data/diary/{id}_diary.pdf"
         page_width, page_height = A4
@@ -53,16 +55,12 @@ class PlantPotService:
 
         c = canvas.Canvas(output_path, pagesize=A4)
 
-        # Titolo iniziale
         c.setFont("Helvetica-Bold", 24)
         c.setFillColor(colors.darkgreen)
         c.drawCentredString(page_width / 2, page_height - margin, f"🪴 Insect Diary - Pot {id}")
-        
-        # Spazio iniziale per discesa
         y = page_height - margin - 40
-
         for i, filepath in enumerate(photos_filenames):
-            if y < 150:  # se non c'è abbastanza spazio, nuova pagina
+            if y < 150:
                 c.showPage()
                 c.setFont("Helvetica-Bold", 24)
                 c.setFillColor(colors.darkgreen)
@@ -72,18 +70,15 @@ class PlantPotService:
             filename = os.path.basename(filepath)
             match = re.match(rf"{id}_(.+?)_(\d{{4}})-(\d{{2}})-(\d{{2}})_", filename)
             if match:
-                insect_name = match.group(1).replace("_", " ").title()
+                sighting_name = match.group(1).replace("_", " ").title()
                 date_str = f"{match.group(4)}/{match.group(3)}/{match.group(2)}"
             else:
-                insect_name = "Unknown insect"
+                sighting_name = "Unknown"
                 date_str = "Unknown date"
 
-            # Draw container
             box_height = 100
             c.setFillColor(colors.whitesmoke)
             c.roundRect(margin, y - box_height, page_width - 2 * margin, box_height, 10, fill=1)
-
-            # Load image
             try:
                 img = ImageReader(filepath)
                 img_width, img_height = img.getSize()
@@ -95,11 +90,10 @@ class PlantPotService:
 
                 c.drawImage(img, img_x, img_y, width=scaled_width, height=scaled_height, mask='auto')
 
-                # Draw text info
                 text_x = img_x + scaled_width + 20
                 c.setFont("Helvetica-Bold", 14)
                 c.setFillColor(colors.black)
-                c.drawString(text_x, y - 30, f"{insect_name}")
+                c.drawString(text_x, y - 30, f"{sighting_name}")
 
                 c.setFont("Helvetica", 12)
                 c.setFillColor(colors.grey)
@@ -110,7 +104,7 @@ class PlantPotService:
                 c.setFillColor(colors.red)
                 c.drawString(margin, y - 30, f"Error loading: {filename}")
 
-            y -= box_height + 20  # spazio tra le schede
+            y -= box_height + 20 
 
         c.save()
         print(f"PDF created: {output_path}")
@@ -119,14 +113,10 @@ class PlantPotService:
 
 
     def calibrate(self, camera, servo, servo_pin, conf_repo):
-        # take photos
-
         for i in range(0, 181, 10):
             servo.set_servo_pulsewidth(servo_pin, Utilities.angle_to_pulsewidth(i))
             path = f"data/calibration/{i}_.jpg"
-
             camera.take_photo(path)
-
             if not os.path.isfile(path) or os.path.getsize(path) == 0:
                 raise RuntimeError(f"Camera failure at {i}°")
 
@@ -148,14 +138,12 @@ class PlantPotService:
                     continue
                 marker_corners = marker_corners.reshape((4, 2))
 
-                # Robust center: average of the four corners
                 cX = int(marker_corners[:, 0].mean())
                 cY = int(marker_corners[:, 1].mean())
 
                 image_center_x = image.shape[1] // 2
                 image_center_y = image.shape[0] // 2
 
-                # Tolerance as fraction of image size (e.g. 0.25 = 25%)
                 tolerance_frac = 0.35
                 tol_x = image.shape[1] * tolerance_frac
                 tol_y = image.shape[0] * tolerance_frac
@@ -180,6 +168,5 @@ class PlantPotService:
             conf_repo.update(conf_id, conf.to_orm())
             conf_repo.session.commit()
                         
-
 
     

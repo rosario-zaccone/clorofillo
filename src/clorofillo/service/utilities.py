@@ -1,9 +1,6 @@
 import cv2
 import numpy as np
-import os
-import requests
 import base64
-from dotenv import load_dotenv
 import matplotlib.pyplot as plt
 
 class Utilities:

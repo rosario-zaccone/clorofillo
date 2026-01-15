@@ -27,7 +27,7 @@ class PlantPotRepository(Repository):
             .filter(PlantPhotoORM.plant_pot_id == plant_pot_id)
             .filter(PlantPhotoORM.timestamp >= date_from)
             .filter(PlantPhotoORM.timestamp <= date_to)
-            .filter(PlantPhotoORM.is_insect == False)
+            .filter(PlantPhotoORM.is_sighting == False)
             .order_by(PlantPhotoORM.timestamp.asc())
             .all()
         )

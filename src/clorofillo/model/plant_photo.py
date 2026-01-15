@@ -2,10 +2,10 @@ from datetime import datetime
 from clorofillo.persistence.orm_models import PlantPhotoORM
 
 class PlantPhoto:
-    def __init__(self, timestamp: datetime, is_insect: bool, path: str, id: int = None):
+    def __init__(self, timestamp: datetime, is_sighting: bool, path: str, id: int = None):
         self._id = id
         self.timestamp = timestamp
-        self.is_insect = is_insect
+        self.is_sighting = is_sighting
         self.path = path
 
     @property
@@ -17,7 +17,7 @@ class PlantPhoto:
     def from_orm(orm_obj):
         return PlantPhoto(
             timestamp=orm_obj.timestamp,
-            is_insect=orm_obj.is_insect,
+            is_sighting=orm_obj.is_sighting,
             path=orm_obj.path,
             id=getattr(orm_obj, 'id', None)
         )
@@ -25,7 +25,7 @@ class PlantPhoto:
     def to_orm(self, plant_pot_id=None):
         orm = PlantPhotoORM(
             timestamp=self.timestamp,
-            is_insect=self.is_insect,
+            is_sighting=self.is_sighting,
             path=self.path,
             plant_pot_id=plant_pot_id
         )

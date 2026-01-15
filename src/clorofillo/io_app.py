@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 import RPi.GPIO as GPIO
 import pigpio
-from gpiozero import PWMLED, MCP3008
+from gpiozero import  MCP3008
 from picamzero import Camera
 
 from sqlalchemy import create_engine
@@ -20,11 +20,10 @@ from sqlalchemy.orm import sessionmaker
 from clorofillo.persistence.configuration_repository import ConfigurationRepository
 from clorofillo.persistence.plant_pot_repository import PlantPotRepository
 from clorofillo.persistence.plant_photo_repository import PlantPhotoRepository
-from clorofillo.persistence.measurement_repository import MeasurementRepository
 from clorofillo.model.plant_pot import PlantPot
-from clorofillo.business.utilities import Utilities
-from clorofillo.business.plant_pot_service import PlantPotService
-from clorofillo.business.plant_photo_service import PlantPhotoService
+from clorofillo.service.utilities import Utilities
+from clorofillo.service.plant_pot_service import PlantPotService
+from clorofillo.service.plant_photo_service import PlantPhotoService
 
 # -----------------------------
 # GPIO and hardware setup
@@ -133,7 +132,7 @@ def watering_worker(stop_event):
         session.close()
 
 # -----------------------------
-# Photo and insect detection logic
+# Photo and sighting detection logic
 # -----------------------------
 def photo_worker(stop_event):
     session = SessionLocal()
@@ -186,12 +185,12 @@ def photo_worker(stop_event):
 
             # INSECT detection
             try:
-                freqs = [pots[i].configuration.insect_freq for i in range(len(pots))]
+                freqs = [pots[i].configuration.sighting_freq for i in range(len(pots))]
                 angles = [pots[i].configuration.position for i in range(len(pots))]
 
                 for i in range(len(pots)):
                     if freqs[i] == 0:
-                        photo_service.clean_insect_detect(i+1)
+                        photo_service.clean_sighting_detect(i+1)
                     
                 
                 if any(f != 0 for f in freqs):
@@ -204,10 +203,10 @@ def photo_worker(stop_event):
                                 SERVO_PIN,
                                 Utilities.angle_to_pulsewidth(angles[i])
                             )
-                            photo_service.insect_shot(i + 1, datetime.now())
+                            photo_service.sighting_shot(i + 1, datetime.now())
                             time.sleep(interval)
             except Exception as e:
-                print("Error during insect detection:", e)
+                print("Error during sighting detection:", e)
                 time.sleep(1)
 
     except Exception as e:
