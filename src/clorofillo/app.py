@@ -68,54 +68,81 @@ async def send_telegram_message(bot, chat_id: int, message: str):
         print(f"Failed to send message: {e}")
 
 async def notify_manager(application):
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
+
     while True:
-        message = await loop.run_in_executor(None, r.lpop, "rasp_to_bot")
-        if message:
-            if isinstance(message, bytes):
-                message = message.decode('utf-8')
+        try:
+            _, message = await loop.run_in_executor(
+                None, lambda: r.blpop("rasp_to_bot", 0)
+            )
+            message = message.decode("utf-8").strip()
+            error_msg = None
             if "|" in message:
                 code_str, error_msg = message.split("|", 1)
                 code = int(code_str)
             else:
                 code = int(message)
-                error_msg = None
-
             if code == 1:
                 message_text = "⚠️ Empty tank!"
                 for chat_id in AUTHORIZED_CHAT_IDS:
                     await send_telegram_message(application.bot, chat_id, message_text)
             elif code in (2, 3):
-                message_text = "⚠️ Calibration finished!" if code == 2 else f"⚠️ {error_msg}"
+                message_text = (
+                    "👌 Calibration completed!"
+                    if code == 2
+                    else f"⚠️ {error_msg or 'Calibration error'}"
+                )
+
                 for chat_id in AUTHORIZED_CHAT_IDS:
                     await send_telegram_message(application.bot, chat_id, message_text)
+
                     if os.path.exists(CALIB_DIR):
-                        files = [f for f in os.listdir(CALIB_DIR) if f.lower().endswith(".jpg")]
+                        files = [
+                            f for f in os.listdir(CALIB_DIR)
+                            if f.lower().endswith(".jpg")
+                        ]
                         files.sort(key=lambda x: int(x.split("_")[0]))
+
                         for file in files:
                             angle = file.split("_")[0]
                             path = os.path.join(CALIB_DIR, file)
                             with open(path, "rb") as f:
-                                await application.bot.send_photo(chat_id=chat_id, photo=f, caption=f"Angle: {angle}°")
-
+                                await application.bot.send_photo(
+                                    chat_id=chat_id,
+                                    photo=f,
+                                    caption=f"Angle: {angle}°"
+                                )
             elif code == 4:
                 message_text = "⚠️ Possible sighting detected!"
                 for chat_id in AUTHORIZED_CHAT_IDS:
                     await send_telegram_message(application.bot, chat_id, message_text)
+
                     if os.path.exists(PATCH_DIR):
-                        files = [f for f in os.listdir(PATCH_DIR) if f.lower().endswith(".jpg")]
+                        files = [
+                            f for f in os.listdir(PATCH_DIR)
+                            if f.lower().endswith(".jpg")
+                        ]
+
                         for file in files:
-                            pot_id = file.split("_")[1]
-                            timestamp = (file.split("_")[2]).split(".jpg")[0]
-                            path = os.path.join(PATCH_DIR, file)
-                            with open(path, "rb") as f:
-                                await application.bot.send_photo(
-                                    chat_id=chat_id,
-                                    photo=f,
-                                    caption=f"Pot: {pot_id}, timestamp: {timestamp}"
-                                )
-                            os.remove(path)
-        await asyncio.sleep(0.1) 
+                            try:
+                                pot_id = file.split("_")[1]
+                                timestamp = file.split("_")[2].replace(".jpg", "")
+                                path = os.path.join(PATCH_DIR, file)
+
+                                with open(path, "rb") as f:
+                                    await application.bot.send_photo(
+                                        chat_id=chat_id,
+                                        photo=f,
+                                        caption=f"Pot: {pot_id}, timestamp: {timestamp}"
+                                    )
+
+                                os.remove(path)
+
+                            except Exception as e:
+                                logger.warning(f"Failed to send/remove patch {file}: {e}")
+        except Exception:
+            logger.exception("notify_manager error")
+            await asyncio.sleep(1)
 
 @authorized_only
 async def kill_io_app(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -131,7 +158,6 @@ async def start_io_app(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 @authorized_only
 async def shutdown(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("⚠️ Raspberry Pi is shutting down...")
-    # esegue shutdown in background
     os.system("sudo shutdown now")
 
 
@@ -262,7 +288,7 @@ async def get_sighting_diary(update: Update, context: ContextTypes.DEFAULT_TYPE)
             raise ValueError("ID doesn't exist")
         path = pot_service.sighting_diary(pot_id)
         await update.message.reply_text("🎬 Your sighting diary is ready!")
-        await update.message.reply_document(document=open(path, "rb"), caption="🌱 Insect diary")
+        await update.message.reply_document(document=open(path, "rb"), caption="🌱 Sighting diary")
     except ValueError as ve:
         await update.message.reply_text(f"Error: {str(ve)}")
     except Exception as e:

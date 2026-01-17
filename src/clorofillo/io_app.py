@@ -62,12 +62,10 @@ def get_pots(pot_repository):
             pots.append(PlantPot.from_orm(pot))
     return pots
 
-# -----------------------------
 # Watering logic
-# -----------------------------
 def watering(pot, pump_pin, humidity_channel):
     humidity = Utilities.map_humidity(MCP3008(humidity_channel).value)
-    print(f"Pot number {pot.id} has humidity {humidity}%")
+    #print(f"Pot number {pot.id} has humidity {humidity}%")
     if pot.configuration.watering_mode and humidity < pot.configuration.threshold:
         print(f"Watering pot {pot.id}")
         GPIO.output(PUMP_ONE_PIN, GPIO.HIGH)
@@ -92,11 +90,12 @@ def watering_worker(stop_event):
 
             try:
                 water_level = int(MCP3008(3).value * 100)
+                print("water level", water_level)
             except Exception as e:
                 print("Error reading water level MCP3008:", e)
                 water_level = 0
 
-            if False:  # if water_level > 20:
+            if water_level > 20:
                 try:
                     watering(pots[0], PUMP_ONE_PIN, 0)
                     watering(pots[1], PUMP_TWO_PIN, 1)
@@ -129,9 +128,7 @@ def watering_worker(stop_event):
             print("Error during pump cleanup in watering_worker:", e)
         session.close()
 
-# -----------------------------
 # Photo and sighting detection logic
-# -----------------------------
 def photo_worker(stop_event):
     session = SessionLocal()
     conf_repository = ConfigurationRepository(session)
@@ -212,9 +209,7 @@ def photo_worker(stop_event):
     finally:
         session.close()
 
-# -----------------------------
-# Main program
-# -----------------------------
+
 def main():
     try:
         GPIO.output(PUMP_ONE_PIN, GPIO.HIGH)

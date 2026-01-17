@@ -57,14 +57,14 @@ class PlantPotService:
 
         c.setFont("Helvetica-Bold", 24)
         c.setFillColor(colors.darkgreen)
-        c.drawCentredString(page_width / 2, page_height - margin, f"🪴 Insect Diary - Pot {id}")
+        c.drawCentredString(page_width / 2, page_height - margin, f"🪴 Sighting Diary - Pot {id}")
         y = page_height - margin - 40
         for i, filepath in enumerate(photos_filenames):
             if y < 150:
                 c.showPage()
                 c.setFont("Helvetica-Bold", 24)
                 c.setFillColor(colors.darkgreen)
-                c.drawCentredString(page_width / 2, page_height - margin, f"🪴 Insect Diary - Pot {id}")
+                c.drawCentredString(page_width / 2, page_height - margin, f"🪴 Sighting Diary - Pot {id}")
                 y = page_height - margin - 40
 
             filename = os.path.basename(filepath)
@@ -113,7 +113,7 @@ class PlantPotService:
 
 
     def calibrate(self, camera, servo, servo_pin, conf_repo):
-        for i in range(0, 181, 10):
+        for i in range(0, 161, 10):
             servo.set_servo_pulsewidth(servo_pin, Utilities.angle_to_pulsewidth(i))
             path = f"data/calibration/{i}_.jpg"
             camera.take_photo(path)
@@ -125,7 +125,7 @@ class PlantPotService:
         aruco_params = cv2.aruco.DetectorParameters()
         detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
         angles = {}
-        for i in range(0, 181, 10):
+        for i in range(0, 161, 10):
             image_path = f"data/calibration/{i}_.jpg"
             image = cv2.imread(image_path)
 
@@ -161,7 +161,6 @@ class PlantPotService:
         for i in range(1, 4):
             pot_orm = self._repository.get_by_id(i)
             pot = PlantPot.from_orm(pot_orm)
-            print(i, pot)
             conf_id = pot.configuration.id
             conf = pot.configuration
             conf.position = angles.get(i)
