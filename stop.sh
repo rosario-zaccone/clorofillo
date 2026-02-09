@@ -1,10 +1,8 @@
 #!/bin/bash
 
-# Array di nomi dei processi da cercare
 process_names=("app.py" "io_app.py")
 
 for name in "${process_names[@]}"; do
-    # Trova tutti i PID del processo (escludendo grep stesso)
     pids=$(pgrep -f "$name")
 
     if [[ -n "$pids" ]]; then

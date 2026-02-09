@@ -1,5 +1,9 @@
 # clorofillo
-IoT system for automated watering, timelapse recording, and plant flowering/insect detection
+IoT system for automated watering, timelapse recording, and insect detection
+Project developed for University of Bologna Making course
+
+## Installation
+
 
 ## Code for redis comunication
 

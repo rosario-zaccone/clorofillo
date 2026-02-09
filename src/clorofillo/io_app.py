@@ -65,7 +65,6 @@ def get_pots(pot_repository):
 # Watering logic
 def watering(pot, pump_pin, humidity_channel):
     humidity = Utilities.map_humidity(MCP3008(humidity_channel).value)
-    #print(f"Pot number {pot.id} has humidity {humidity}%")
     if pot.configuration.watering_mode and humidity < pot.configuration.threshold:
         print(f"Watering pot {pot.id}")
         GPIO.output(PUMP_ONE_PIN, GPIO.HIGH)

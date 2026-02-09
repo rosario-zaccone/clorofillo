@@ -1,6 +1,9 @@
 import os, re
 from time import sleep
-
+from PIL import Image, ImageEnhance
+import numpy as np
+import tempfile
+import cv2
 
 import cv2
 from moviepy import ImageSequenceClip
@@ -8,10 +11,16 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
+from dotenv import load_dotenv
 
 from clorofillo.model.plant_pot import PlantPhoto, PlantPot
 from clorofillo.persistence.plant_pot_repository import PlantPotRepository
 from clorofillo.service.utilities import Utilities
+
+load_dotenv()
+
+DIARY_DIR = os.getenv("DIARY_DIR", "data/diary")
+CALIB_DIR = os.getenv("CALIB_DIR", "data/calibration")
 
 
 class PlantPotService:
@@ -22,21 +31,77 @@ class PlantPotService:
     def repository(self):
          return self._repository
     
-    def timelapse(self, id, date_from, date_to, fps, output_path):
+    def timelapse(self, id, date_from, date_to, fps, output_path, filter_type="none"):
         pot = self._repository.get_by_id(id)
         if pot is None:
             raise Exception("Invalid id")
         if date_to < date_from:
             raise ValueError("date_to cannot be earlier than date_from")
         if fps <= 0:
-                raise ValueError("fps must be > 0")
+            raise ValueError("fps must be > 0")
+        
+        valid_filters = ["none", "bw", "saturation", "contrast", "white_balance"]
+        if filter_type not in valid_filters:
+            raise ValueError(f"filter_type must be one of {valid_filters}")
+        
         photos = self._repository.get_photos_by_date_range(pot.id, date_from, date_to)
         photos_domain = [PlantPhoto.from_orm(photo) for photo in photos]
         photos_filenames = [photo.path for photo in photos_domain]
-
+        
+        # Apply filters
+        if filter_type != "none":
+            photos_filenames = self._apply_filters(photos_filenames, filter_type)
+        
         clip = ImageSequenceClip(photos_filenames, fps=fps)
         clip.write_videofile(output_path)
+
+    def _apply_filters(self, photos_filenames, filter_type):
+        temp_dir = tempfile.mkdtemp()
+        filtered_filenames = []
         
+        for idx, photo_path in enumerate(photos_filenames):
+            img = Image.open(photo_path)
+            
+        
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            
+            if filter_type == "bw":
+                img = img.convert("L")  # grayscale
+                img = Image.merge("RGB", (img, img, img)) 
+            
+            elif filter_type == "saturation":
+                enhancer = ImageEnhance.Color(img)
+                img = enhancer.enhance(1.5)  # +50% saturation
+            
+            elif filter_type == "contrast":
+                enhancer = ImageEnhance.Contrast(img)
+                img = enhancer.enhance(1.3)  # +30% contrast
+            
+            elif filter_type == "white_balance":
+                img = self._auto_white_balance(img)
+            
+            # Save to temp
+            temp_path = os.path.join(temp_dir, f"frame_{idx:06d}.png")
+            img.save(temp_path)
+            filtered_filenames.append(temp_path)
+        
+        return filtered_filenames
+
+    def _auto_white_balance(self, img):
+        img_array = np.array(img, dtype=np.float32)
+        result = cv2.cvtColor(img_array, cv2.COLOR_RGB2LAB)
+        avg_a = np.mean(result[:, :, 1])
+        avg_b = np.mean(result[:, :, 2])
+        
+        result[:, :, 1] -= ((avg_a - 128) * (result[:, :, 0] / 255.0) * 1.3)
+        result[:, :, 2] -= ((avg_b - 128) * (result[:, :, 0] / 255.0) * 1.3)
+        
+        result = cv2.cvtColor(result, cv2.COLOR_LAB2RGB)
+        result = np.clip(result, 0, 255).astype(np.uint8)
+        
+        return Image.fromarray(result)
+            
 
     def sighting_diary(self, id):
         pot = PlantPot.from_orm(self._repository.get_by_id(id))
@@ -49,7 +114,8 @@ class PlantPotService:
         if not photos_filenames:
             raise Exception("No sighting photos found for this plant pot.")
 
-        output_path = f"data/diary/{id}_diary.pdf"
+        output_path = os.path.join(DIARY_DIR, f"{id}_diary.pdf")
+
         page_width, page_height = A4
         margin = 40
 
@@ -115,7 +181,7 @@ class PlantPotService:
     def calibrate(self, camera, servo, servo_pin, conf_repo):
         for i in range(0, 161, 10):
             servo.set_servo_pulsewidth(servo_pin, Utilities.angle_to_pulsewidth(i))
-            path = f"data/calibration/{i}_.jpg"
+            path = os.path.join(CALIB_DIR, f"{i}_.jpg")
             camera.take_photo(path)
             if not os.path.isfile(path) or os.path.getsize(path) == 0:
                 raise RuntimeError(f"Camera failure at {i}°")
@@ -126,7 +192,7 @@ class PlantPotService:
         detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
         angles = {}
         for i in range(0, 161, 10):
-            image_path = f"data/calibration/{i}_.jpg"
+            image_path = os.path.join(CALIB_DIR, f"{i}_.jpg")
             image = cv2.imread(image_path)
 
             corners, ids, _ = detector.detectMarkers(image)

@@ -36,6 +36,7 @@ photo_service = PlantPhotoService(photo_repository, None)
 
 CALIB_DIR = os.getenv("CALIB_DIR", "data/calibration")
 PATCH_DIR = os.getenv("PATCH_DIR", "data/photos/sighting/patch/")
+TIMELAPSE_DIR = os.getenv("TIMELAPSE_DIR", "data/timelapses/")
 
 r = redis.Redis(host='localhost', port=6379, db=0)
 
@@ -221,23 +222,28 @@ async def clean_timelapse_photos(update: Update, context: ContextTypes.DEFAULT_T
 
 @authorized_only
 async def get_timelapse(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # Available filters: none, bw, saturation, contrast, white_balance
     try:
-        if len(context.args) != 4:
+        if len(context.args) != 5:
             raise ValueError("Wrong number of arguments")
         pot_id = context.args[0]
         from_date = context.args[1].split("-")
         to_date = context.args[2].split("-")
         fps = int(context.args[3])
+        filter_type = context.args[4]
+        
         pot_orm = pot_repository.get_by_id(pot_id)
         if pot_orm is None:
             raise ValueError("ID doesn't exist")
-        output_path = "data/timelapses/timelapse_" + pot_id + ".mp4"
+        
+        output_path = TIMELAPSE_DIR + "timelapse_" + pot_id + ".mp4"
         pot_service.timelapse(
             pot_id,
             datetime(int(from_date[0]), int(from_date[1]), int(from_date[2])),
             datetime(int(to_date[0]), int(to_date[1]), int(to_date[2])),
             fps,
             output_path,
+            filter_type,
         )
         await update.message.reply_text("🎬 Your timelapse is ready!")
         await update.message.reply_video(video=open(output_path, "rb"), caption="🌱 Plant growth in timelapse")
@@ -454,46 +460,66 @@ async def calibrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     r.rpush("bot_to_rasp", 1)
     await update.message.reply_text("Calibration started!")
 
-#TODO update info
 @authorized_only
 async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     help_text = (
-        "🤖 <b>Bot commands and parameters</b>\n\n"
-        "/start - Authorize this chat and show quick command keyboard\n"
-        "/help - Show this help (alias of /start)\n\n"
+        "🤖 <b>Clorofillo Bot – Command Reference</b>\n\n"
 
-        "/settings &lt;pot_id&gt; - Show configuration for pot (example: /settings 1)\n\n"
+        "<b>Authorization</b>\n"
+        "/start – Authorize this chat\n"
+        "/help – Alias of /start\n\n"
 
-        "/setsettings &lt;id&gt; &lt;watering_mode&gt; &lt;threshold&gt; "
+        "<b>Configuration</b>\n"
+        "/settings &lt;pot_id&gt;\n"
+        "  • Show current configuration for a pot\n"
+        "  • Example: <code>/settings 1</code>\n\n"
+
+        "/set_settings &lt;pot_id&gt; &lt;watering_mode&gt; &lt;threshold&gt; "
         "&lt;shot_freq&gt; &lt;sighting_freq&gt; &lt;position&gt; &lt;plant&gt; &lt;size&gt;\n"
-        "  • id: pot id (integer)\n"
-        "  • watering_mode: true/false (enable/disable automatic watering)\n"
-        "  • threshold: humidity threshold in % (float)\n"
-        "  • shot_freq: timelapse shots per day (HH:MM,HH:MM,...)\n"
-        "  • sighting_freq: sighting detection frequency (shots per minute) (int)\n"
-        "  • position: servo position in degrees (0–180) (int)\n"
-        "  • plant: plant name (string)\n"
+        "  • watering_mode: <code>true | false</code>\n"
+        "  • threshold: humidity % (float)\n"
+        "  • shot_freq: <code>HH:MM,HH:MM,...</code>\n"
+        "  • sighting_freq: shots per minute (int)\n"
+        "  • position: servo angle 0–180 (int)\n"
+        "  • plant: plant name\n"
         "  • size: pot size in liters (float)\n\n"
 
-        "# Individual setters for convenience:\n"
-        "/set_threshold &lt;pot_id&gt; &lt;threshold&gt; - Set humidity threshold\n"
-        "/set_watering_mode &lt;pot_id&gt; &lt;true|false&gt; - Enable/disable watering\n"
-        "/set_shot_freq &lt;pot_id&gt; &lt;HH:MM,HH:MM,...&gt; - Set timelapse shot times\n"
-        "/set_sighting_freq &lt;pot_id&gt; &lt;frequency&gt; - Set sighting detection frequency (shots/min)\n"
-        "/set_position &lt;pot_id&gt; &lt;position&gt; - Set servo position (0–180°)\n"
-        "/set_size &lt;pot_id&gt; &lt;size&gt; - Set pot size in liters\n"
-        "/set_plant &lt;pot_id&gt; &lt;plant_name&gt; - Set plant name\n\n"
+        "<b>Quick setters</b>\n"
+        "/set_threshold &lt;pot_id&gt; &lt;threshold&gt;\n"
+        "/set_watering_mode &lt;pot_id&gt; &lt;true|false&gt;\n"
+        "/set_shot_freq &lt;pot_id&gt; &lt;HH:MM,HH:MM,...&gt;\n"
+        "/set_sighting_freq &lt;pot_id&gt; &lt;shots_per_min&gt;\n"
+        "/set_position &lt;pot_id&gt; &lt;degrees&gt;\n"
+        "/set_size &lt;pot_id&gt; &lt;liters&gt;\n"
+        "/set_plant &lt;pot_id&gt; &lt;plant_name&gt;\n\n"
 
-        "/timelapse &lt;pot_id&gt; &lt;from YYYY-MM-DD&gt; &lt;to YYYY-MM-DD&gt; &lt;fps&gt;\n"
-        "  • Example: /timelapse 1 2025-01-01 2025-01-31 24\n\n"
+        "<b>Media</b>\n"
+        "/timelapse &lt;pot_id&gt; &lt;from YYYY-MM-DD&gt; "
+        "&lt;to YYYY-MM-DD&gt; &lt;fps&gt; &lt;filter&gt;\n"
+        "  • filter: none | bw | saturation | contrast | white_balance\n"
+        "  • Example:\n"
+        "    <code>/timelapse 1 2025-01-01 2025-01-31 24 none</code>\n\n"
 
-        "/calibrate - Start camera+servo calibration (you will receive a notification when finished)\n"
-        "/diary &lt;pot_id&gt; - Get the sighting diary for the pot\n\n"
+        "/diary &lt;pot_id&gt; – Get sighting diary PDF\n\n"
 
-        "Use the keyboard buttons for quick access to these commands."
+        "<b>System</b>\n"
+        "/calibrate – Start camera/servo calibration\n"
+        "/startio – Start io_app.py\n"
+        "/killio – Stop io_app.py\n\n"
+
+        "<b>Maintenance (DEBUG)</b>\n"
+        "/cleantimelapse – Delete all timelapse photos\n"
+        "/cleansighting – Delete all sighting photos\n"
+        "/shutdown – Shutdown Raspberry Pi\n\n"
+
+        "<b>Sightings</b>\n"
+        "Reply to a detected photo with:\n"
+        "<code>/savesighting &lt;description&gt;</code>\n"
+        "  • Example: <code>/savesighting aphids</code>\n"
     )
 
     await update.message.reply_text(help_text, parse_mode=ParseMode.HTML)
+
 
 
 @authorized_only

@@ -1,30 +1,20 @@
 #!/bin/bash
 
-set -a
-[ -f .env ] && . .env
-set +a
+set -e
 
-if [ -z "$WIFI_SSID" ] || [ -z "$WIFI_PASSWD" ]; then
-    echo "SSID or PASSWD not set in .env"
-    exit 1
-fi
+cd /home/rosario/Documents/Projects/clorofillo
 
-connect_wifi() {
-    nmcli connection delete "$SSID" 2>/dev/null
-    nmcli dev wifi connect "$SSID" password "$PASSWD" >/dev/null 2>&1
-}
-
-while true; do
-    connect_wifi
-    IP=$(hostname -I | awk '{print $1}')
-    if [ -n "$IP" ]; then
-        echo "Connected to Wi-Fi! IP: $IP"
+# Wait for internet connection
+echo "Checking internet connection..."
+for i in {1..30}; do
+    if ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1; then
+        echo "✓ Internet available!"
         break
-    else
-        echo "Connection failed, retrying in 10 seconds..."
-        sleep 10
     fi
+    echo "Attempt $i/30..."
+    sleep 5
 done
 
-poetry run python src/clorofillo/app.py &
-wait
+# Start app
+echo "Starting application..."
+exec /home/rosario/.local/bin/poetry run python -m clorofillo.app

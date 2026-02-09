@@ -5,9 +5,15 @@ from PIL import Image
 from clorofillo.model.plant_photo import PlantPhoto
 from clorofillo.persistence.plant_photo_repository import PlantPhotoRepository
 
+load_dotenv()
+
+COMPARISON_DIR = os.getenv("COMPARISON_DIR", "data/photos/comparison")
+SIGHTING_PATCH_DIR = os.getenv("SIGHTING_PATCH_DIR", "data/photos/sighting/patch")
+TIMELAPSE_PHOTO_DIR = os.getenv("TIMELAPSE_PHOTO_DIR", "data/photos/timelapse")
+
+
 class PlantPhotoService:
     def __init__(self, repository: PlantPhotoRepository, camera, api_key=None, api_url=None):
-        load_dotenv()
         self._repository = repository
         self.camera = camera
         self._API_URL = api_url or "https://insect.kindwise.com/api/v1/identification"
@@ -19,7 +25,7 @@ class PlantPhotoService:
 
 
     def clean_sighting_detect(self, pot_id):
-        folder_path = 'data/photos/maybe_sighting/'
+        folder_path = COMPARISON_DIR
         file_path = os.path.join(folder_path, "before_" + str(pot_id) + ".jpg")
         if os.path.exists(file_path):
             os.remove(file_path)
@@ -77,7 +83,7 @@ class PlantPhotoService:
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         patches_base64 = []
-        patch_dir = "data/photos/sighting/patch"
+        patch_dir = SIGHTING_PATCH_DIR
         os.makedirs(patch_dir, exist_ok=True)
 
         max_id = -1
@@ -144,28 +150,46 @@ class PlantPhotoService:
             )
 
 
-    def sighting_shot(self, pot_id, timestamp): 
-        before_img = f"data/photos/maybe_sighting/before_{pot_id}.jpg"
-        after_img = f"data/photos/maybe_sighting/after_{pot_id}.jpg"
+    def sighting_shot(self, pot_id, timestamp):
+        before_img = os.path.join(COMPARISON_DIR, f"before_{pot_id}.jpg")
+        after_img = os.path.join(COMPARISON_DIR, f"after_{pot_id}.jpg")
+
+        os.makedirs(COMPARISON_DIR, exist_ok=True)
+
         self.camera.take_photo(after_img)
+
         if os.path.isfile(before_img):
-            patches_b64 = self._detect_sighting_patches_base64(before_img, after_img, pot_id, timestamp)
-            if (patches_b64):
+            patches_b64 = self._detect_sighting_patches_base64(
+                before_img, after_img, pot_id, timestamp
+            )
+
+            if patches_b64:
                 # telegram notify redis
                 print("OK")
                 r = redis.Redis(host="localhost", port=6379, db=0)
                 r.rpush("rasp_to_bot", 4)
                 r.close()
+
             os.remove(before_img)
+
         os.rename(after_img, before_img)
-    
-    def timelapse_shot(self, pot_id, timestamp): 
+
+
+    def timelapse_shot(self, pot_id, timestamp):
         readable = str(timestamp).replace(" ", "_")
-        path = f"data/photos/timelapse/{pot_id}_{readable}.jpg"
+        os.makedirs(TIMELAPSE_PHOTO_DIR, exist_ok=True)
+
+        path = os.path.join(
+            TIMELAPSE_PHOTO_DIR,
+            f"{pot_id}_{readable}.jpg"
+        )
+
         self.camera.take_photo(path)
+
         photo = PlantPhoto(timestamp, False, path)
         self._repository.insert(photo.to_orm(pot_id))
         self._repository.session.commit()
+
     
     async def add_sighting(self, photo_file, pot_id, timestamp, file_path):
         await photo_file.download_to_drive(file_path)
