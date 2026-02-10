@@ -1,6 +1,6 @@
 # Clorofillo
 
-IoT system for automated watering, timelapse recording, and insect detection
+IoT system for automated watering, timelapse recording, and invertebrate detection
 
 Project developed for University of Bologna Making course
 
@@ -97,7 +97,7 @@ nano .env
 | `PUMP_THREE_PIN` | GPIO pin for pump 3 | `24` |
 | `FLOW_RATE` | Pump flow rate (L/s) | `0.05` |
 | `CALIB_DIR` | Calibration photos directory | `data/calibration` |
-| `PATCH_DIR` | Insect patch directory | `data/photos/sighting/patch/` |
+| `PATCH_DIR` | invertebrate patch directory | `data/photos/sighting/patch/` |
 | `TIMELAPSE_DIR` | Timelapse videos directory | `data/timelapses/` |
 
 #### 4. Initialize Database
@@ -167,7 +167,7 @@ The system will automatically:
 /start       → Authorize your chat with the bot
 /help        → Show help and keyboard
 /info        → Display all available commands
-/startio     → Start hardware + insect detection
+/startio     → Start hardware + invertebrate detection
  ```
 
 ### Common Commands
@@ -244,7 +244,7 @@ clorofillo/
 │   ├── calibration/               # Calibration photos
 │   └── photos/
 │       ├── timelapse/             # Timelapse photos
-│       ├── sighting/patch/        # Detected insect patches
+│       ├── sighting/patch/        # Detected invertebrate patches
 │       └── comparison/            # ML comparison images
 └── src/clorofillo/
     ├── app.py                     # Telegram bot
@@ -263,7 +263,7 @@ clorofillo/
 | `1` | Empty tank | Water reservoir is empty |
 | `2` | Calibration OK | Camera/servo calibration completed successfully |
 | `3\|<error>` | Calibration failed | Calibration error with details |
-| `4` | Insect detected | Possible sighting detected in photos |
+| `4` | invertebrate detected | Possible sighting detected in photos |
 
 ### Bot → Raspberry Pi (bot_to_rasp)
 

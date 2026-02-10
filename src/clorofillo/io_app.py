@@ -177,7 +177,7 @@ def photo_worker(stop_event):
             except Exception as e:
                 print("Error during timelapse:", e)
 
-            # INSECT detection
+            # invertebrate detection
             try:
                 freqs = [pots[i].configuration.sighting_freq for i in range(len(pots))]
                 angles = [pots[i].configuration.position for i in range(len(pots))]

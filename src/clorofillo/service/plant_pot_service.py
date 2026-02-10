@@ -89,18 +89,25 @@ class PlantPotService:
         return filtered_filenames
 
     def _auto_white_balance(self, img):
-        img_array = np.array(img, dtype=np.float32)
-        result = cv2.cvtColor(img_array, cv2.COLOR_RGB2LAB)
-        avg_a = np.mean(result[:, :, 1])
-        avg_b = np.mean(result[:, :, 2])
-        
-        result[:, :, 1] -= ((avg_a - 128) * (result[:, :, 0] / 255.0) * 1.3)
-        result[:, :, 2] -= ((avg_b - 128) * (result[:, :, 0] / 255.0) * 1.3)
-        
-        result = cv2.cvtColor(result, cv2.COLOR_LAB2RGB)
-        result = np.clip(result, 0, 255).astype(np.uint8)
-        
-        return Image.fromarray(result)
+        img_np = np.asarray(img).astype(np.float32)
+        r = img_np[:, :, 0]
+        g = img_np[:, :, 1]
+        b = img_np[:, :, 2]
+        r_mean = np.mean(r)
+        g_mean = np.mean(g)
+        b_mean = np.mean(b)
+        if r_mean == 0 or g_mean == 0 or b_mean == 0:
+            return img
+        gray_mean = (r_mean + g_mean + b_mean) / 3.0
+        r *= gray_mean / r_mean
+        g *= gray_mean / g_mean
+        b *= gray_mean / b_mean
+        balanced = np.stack([r, g, b], axis=2)
+        balanced = np.clip(balanced, 0, 255).astype(np.uint8)
+        return Image.fromarray(balanced, mode="RGB")
+
+
+
             
 
     def sighting_diary(self, id):

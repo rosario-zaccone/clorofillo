@@ -146,6 +146,37 @@ async def notify_manager(application):
             await asyncio.sleep(1)
 
 @authorized_only
+async def set_apikey(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        if len(context.args) != 1:
+            raise ValueError("Usage: /set_apikey <new_api_key>")
+        new_api_key = context.args[0].strip()
+
+        env_path = ".env"
+        lines = []
+        if os.path.exists(env_path):
+            with open(env_path, "r") as f:
+                lines = f.readlines()
+
+        found = False
+        for i, line in enumerate(lines):
+            if line.startswith("API_KEY="):
+                lines[i] = f"API_KEY={new_api_key}\n"
+                found = True
+                break
+
+        if not found:
+            lines.append(f"API_KEY={new_api_key}\n")
+
+        with open(env_path, "w") as f:
+            f.writelines(lines)
+        os.environ["API_KEY"] = new_api_key
+        await update.message.reply_text(f"✅ API KEY updated!")
+    except Exception as e:
+        await update.message.reply_text(f"⚠️ Error: {e}")
+
+
+@authorized_only
 async def kill_io_app(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("⚠️ Stopping io_app.py...")
     os.system("/home/rosario/Documents/Projects/clorofillo/kill_io.sh &")
@@ -236,7 +267,7 @@ async def get_timelapse(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         if pot_orm is None:
             raise ValueError("ID doesn't exist")
         
-        output_path = TIMELAPSE_DIR + "timelapse_" + pot_id + ".mp4"
+        output_path = os.path.join(TIMELAPSE_DIR, f"timelapse_{pot_id}.mp4")
         pot_service.timelapse(
             pot_id,
             datetime(int(from_date[0]), int(from_date[1]), int(from_date[2])),
@@ -521,6 +552,17 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(help_text, parse_mode=ParseMode.HTML)
 
 
+async def handle_photo_commands(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg = update.message
+    if not msg or not msg.text:
+        return
+
+    if msg.text.startswith("/savesighting") and msg.reply_to_message and msg.reply_to_message.photo:
+        await save_sighting(update, context)
+    elif msg.text.startswith("/identifyinvertebrate") and msg.reply_to_message and msg.reply_to_message.photo:
+        await identify_invertebrate(update, context)
+
+
 
 @authorized_only
 async def save_sighting(update, context):
@@ -560,11 +602,11 @@ async def save_sighting(update, context):
         await update.message.reply_text(f"Sighting saved: {filename}")
 
 @authorized_only
-async def identify_insect(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def identify_invertebrate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.message
-    if not (msg and msg.text and msg.text.strip().startswith("/identifyinsect") and 
+    if not (msg and msg.text and msg.text.strip().startswith("/identifyinvertebrate") and 
             msg.reply_to_message and msg.reply_to_message.photo):
-        await update.message.reply_text("⚠️ Use /identifyinsect only as a reply to a photo.")
+        await update.message.reply_text("⚠️ Use /identifyinvertebrate only as a reply to a photo.")
         return
 
     try:
@@ -576,14 +618,18 @@ async def identify_insect(update: Update, context: ContextTypes.DEFAULT_TYPE):
         out_buf = io.BytesIO()
         img.save(out_buf, format="JPEG")
         patch_base64 = base64.b64encode(out_buf.getvalue()).decode("utf-8")
-        insect_name = photo_service.detect_insect([patch_base64])
-        if insect_name:
-            await update.message.reply_text(f"🔍 Insect identified: {insect_name}")
+        invertebrates = photo_service.detect_invertebrate([patch_base64])
+        if invertebrates:
+            invertebrate_list = ""
+            for invertebrate in invertebrates:
+                invertebrate_list += invertebrate
+                invertebrate_list += "\n"
+            await update.message.reply_text(f"🔍 Possible animals:\n{invertebrate_list}")
         else:
-            await update.message.reply_text("❓ No insect identified with sufficient confidence.")
+            await update.message.reply_text("❓ No animals identified with sufficient confidence.")
 
     except Exception as ex:
-        await update.message.reply_text(f"⚠️ Error identifying insect: {ex}")
+        await update.message.reply_text(f"⚠️ Error identifying animals: {ex}")
 
 
 async def post_init(application: Application):
@@ -639,8 +685,14 @@ def main():
     application.add_handler(CommandHandler("set_plant", set_plant))
     application.add_handler(CommandHandler("killio", kill_io_app))
     application.add_handler(CommandHandler("startio", start_io_app))
-    application.add_handler(MessageHandler(filters.TEXT, save_sighting))
-    #application.add_handler(MessageHandler(filters.TEXT, identify_insect))
+
+
+    application.add_handler(MessageHandler(filters.TEXT, handle_photo_commands))
+    application.add_handler(CommandHandler("set_apikey", set_apikey))
+    #application.add_handler(MessageHandler(filters.TEXT, save_sighting))
+    #application.add_handler(MessageHandler(filters.TEXT, identify_invertebrate))
+
+
     application.run_polling()
 
 

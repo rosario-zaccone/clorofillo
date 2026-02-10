@@ -44,7 +44,7 @@ class PlantPhotoService:
         padding_extra=150  # extra pattern around the patches
     ):
         """
-        Compare two images and identify patches where there are changes (possible insects).
+        Compare two images and identify patches where there are changes (possible invertebrates).
         Returns an array of base64 strings of the “after” patches.
         Saves the patches with a unique ID, ORB alignment, and margin + padding.
         """
@@ -129,7 +129,7 @@ class PlantPhotoService:
         return patches_base64
 
 
-    def detect_insect(self, patches_base64):
+    def detect_invertebrate(self, patches_base64):
         response = requests.post(
             self._API_URL,
             params={"details": "url,common_names"},
@@ -137,13 +137,14 @@ class PlantPhotoService:
             json={"images": patches_base64},
         )
         if response.status_code == 201:
-            insect_name = None
+            invertebrates = []
             ok_response = response.json()
             print(ok_response)
             suggestions = ok_response["result"]["classification"]["suggestions"]
-            if suggestions and suggestions[0]["probability"] > 0.7:
-                insect_name = suggestions[0]["name"]
-            return insect_name
+            for suggestion in suggestions:
+                invertebrates.append(f"{suggestion['name']} {suggestion['probability']*100:.2f}%")
+
+            return invertebrates
         else:
             raise Exception(
                 f"Errore API: status code {response.status_code}, response: {response.text}"
