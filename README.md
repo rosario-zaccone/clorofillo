@@ -122,10 +122,10 @@ sudo bash setup_services.sh
  ```
 
 This script:
-- ✅ Creates `clorofillo.service`
-- ✅ Creates `pigpiod.service`
-- ✅ Enables auto-start on boot
-- ✅ Optionally starts services immediately
+- Creates `clorofillo.service`
+- Creates `pigpiod.service`
+- Enables auto-start on boot
+- Optionally starts services immediately
 
 #### 6. Configure WiFi (Raspberry Pi)
 
