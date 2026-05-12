@@ -4,6 +4,30 @@ IoT system for automated watering, timelapse recording, and invertebrate detecti
 
 Project developed for University of Bologna Making course
 
+## Results
+
+The full report is available in [docs/report.pdf](docs/report.pdf).
+
+### Autocalibration
+
+![Autocalibration](docs/assets/results/autocalibrazione.png)
+
+### Notifications
+
+![Notifications](docs/assets/results/notifiche.png)
+
+### Timelapse
+
+![Timelapse](docs/assets/results/timelapse.png)
+
+### Insect Detection
+
+![Insect detection](docs/assets/results/rilevazione-insetti.png)
+
+![Sighting diary](docs/assets/results/diario-avvistamenti.png)
+
+![Insect identification](docs/assets/results/identificazione-insetto.png)
+
 ## Installation
 
 ### Prerequisites
