@@ -17,9 +17,8 @@ Project developed for University of Bologna Making course
 
 ### Installation Steps
 
-#### 0. Clone Repository and Hardware Setup
+#### 1. Clone Repository and Hardware Setup
 
-##### Clone the Repository
 
  ```bash
 # Clone the repository
@@ -32,7 +31,6 @@ cd clorofillo
 git checkout develop
  ```
 
-##### Connect Hardware Components
 
 1. **Read the electrical schematic**: Open `docs/report.pdf` for the complete wiring diagram
 2. **Required components**:
@@ -56,14 +54,14 @@ git checkout develop
 
 **Important**: Double-check all connections against `docs/report.pdf` before powering on.
 
-#### 1. Get Telegram Bot Token
+#### 2. Get Telegram Bot Token
 
 1. Open Telegram and search for `@BotFather`
 2. Send `/newbot` command
 3. Follow the instructions to create a bot
 4. Copy the token (format: `123456:ABC-DEF...`)
 
-#### 2. Install Dependencies
+#### 3. Install Dependencies
 
  ```bash
 # Install Poetry (if not already installed)
@@ -76,7 +74,7 @@ cd clorofillo
 poetry install
  ```
 
-#### 3. Configure Environment Variables
+#### 4. Configure Environment Variables
 
  ```bash
 # Copy example file
@@ -86,7 +84,6 @@ cp .env.example .env
 nano .env
  ```
 
-##### Required Variables:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
@@ -100,7 +97,7 @@ nano .env
 | `PATCH_DIR` | invertebrate patch directory | `data/photos/sighting/patch/` |
 | `TIMELAPSE_DIR` | Timelapse videos directory | `data/timelapses/` |
 
-#### 4. Initialize Database
+#### 5. Initialize Database
 
  ```bash
 poetry run python tests/seed.py
@@ -111,7 +108,7 @@ This creates:
 - 3 example plant pots with default configurations
 - Timelapse shot schedules
 
-#### 5. Setup Systemd Services
+#### 6. Setup Systemd Services
 
  ```bash
 # Make setup script executable
@@ -127,7 +124,7 @@ This script:
 - Enables auto-start on boot
 - Optionally starts services immediately
 
-#### 6. Configure WiFi (Raspberry Pi)
+#### 7. Configure WiFi (Raspberry Pi)
 
  ```bash
 sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
@@ -148,7 +145,7 @@ network={
 
 Save and exit (Ctrl+X, Y, Enter).
 
-#### 7. Reboot Raspberry Pi
+#### 8. Reboot Raspberry Pi
 
  ```bash
 sudo reboot
@@ -273,25 +270,6 @@ clorofillo/
 |------|--------|-------------|
 | `1` | Start calibration | Initiate camera and servo calibration |
 
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| GPIO errors | Check hardware connections against `docs/report.pdf` |
-| Services won't start | Check logs: `journalctl -u clorofillo.service -f` |
-| pigpiod error | Ensure running on Raspberry Pi with GPIO access |
-| Bot not responding | Check `TELEGRAM_TOKEN` in `.env` |
-| Database error | Run `poetry run python tests/seed.py` again |
-| WiFi not connecting | Verify `wpa_supplicant.conf` syntax and credentials |
-| Sensor not reading | Verify MCP3008 connections and channel configuration |
-
-## Support
-
-For issues or questions, check:
-- Hardware schematic: `docs/report.pdf`
-- Service logs: `journalctl -u clorofillo.service -f`
-- Redis communication: `redis-cli ping`
-- Active processes: `ps aux | grep python`
 
 ## Results
 
