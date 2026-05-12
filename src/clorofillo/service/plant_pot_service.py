@@ -170,7 +170,7 @@ class PlantPotService:
 
                 c.setFont("Helvetica", 12)
                 c.setFillColor(colors.grey)
-                c.drawString(text_x, y - 50, f"📅 {date_str}")
+                c.drawString(text_x, y - 50, f"Date: {date_str}")
 
             except Exception as e:
                 c.setFont("Helvetica", 12)
@@ -239,6 +239,3 @@ class PlantPotService:
             conf.position = angles.get(i)
             conf_repo.update(conf_id, conf.to_orm())
             conf_repo.session.commit()
-                        
-
-    

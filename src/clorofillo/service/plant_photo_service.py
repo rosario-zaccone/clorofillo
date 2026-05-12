@@ -1,5 +1,5 @@
 import base64, io, os, re
-import cv2, numpy as np, redis, requests
+import cv2, numpy as np, requests
 from dotenv import load_dotenv
 from PIL import Image
 from clorofillo.model.plant_photo import PlantPhoto
@@ -165,8 +165,8 @@ class PlantPhotoService:
             )
 
             if patches_b64:
-                # telegram notify redis
                 print("OK")
+                import redis
                 r = redis.Redis(host="localhost", port=6379, db=0)
                 r.rpush("rasp_to_bot", 4)
                 r.close()

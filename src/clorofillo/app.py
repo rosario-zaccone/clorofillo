@@ -2,6 +2,7 @@
 import logging
 import os, re, io
 import base64
+from pathlib import Path
 from PIL import Image
 import asyncio, redis
 from telegram.constants import ParseMode
@@ -23,6 +24,9 @@ from telegram.ext import MessageHandler, filters
 
 
 load_dotenv()
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 
 # SQLite session, repository and service objects
 engine = create_engine('sqlite:///data/db.sqlite', echo=False, future=True)
@@ -57,7 +61,7 @@ def authorized_only(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         chat_id = update.effective_chat.id
         if chat_id not in AUTHORIZED_CHAT_IDS:
-            await update.message.reply_text("⚠️ You must use /start first to access commands.")
+            await update.message.reply_text("You must use /start first to access commands.")
             return
         return await func(update, context, *args, **kwargs)
     return wrapper
@@ -84,14 +88,14 @@ async def notify_manager(application):
             else:
                 code = int(message)
             if code == 1:
-                message_text = "⚠️ Empty tank!"
+                message_text = "Empty tank!"
                 for chat_id in AUTHORIZED_CHAT_IDS:
                     await send_telegram_message(application.bot, chat_id, message_text)
             elif code in (2, 3):
                 message_text = (
-                    "👌 Calibration completed!"
+                    "Calibration completed!"
                     if code == 2
-                    else f"⚠️ {error_msg or 'Calibration error'}"
+                    else f"{error_msg or 'Calibration error'}"
                 )
 
                 for chat_id in AUTHORIZED_CHAT_IDS:
@@ -114,7 +118,7 @@ async def notify_manager(application):
                                     caption=f"Angle: {angle}°"
                                 )
             elif code == 4:
-                message_text = "⚠️ Possible sighting detected!"
+                message_text = "Possible sighting detected!"
                 for chat_id in AUTHORIZED_CHAT_IDS:
                     await send_telegram_message(application.bot, chat_id, message_text)
 
@@ -171,25 +175,25 @@ async def set_apikey(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with open(env_path, "w") as f:
             f.writelines(lines)
         os.environ["API_KEY"] = new_api_key
-        await update.message.reply_text(f"✅ API KEY updated!")
+        await update.message.reply_text("API KEY updated!")
     except Exception as e:
-        await update.message.reply_text(f"⚠️ Error: {e}")
+        await update.message.reply_text(f"Error: {e}")
 
 
 @authorized_only
 async def kill_io_app(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("⚠️ Stopping io_app.py...")
-    os.system("/home/rosario/Documents/Projects/clorofillo/kill_io.sh &")
+    await update.message.reply_text("Stopping io_app.py...")
+    os.system(f"{SCRIPTS_DIR / 'kill_io.sh'} &")
 
 @authorized_only
 async def start_io_app(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("⚠️ Starting io_app.py...")
-    os.system("/home/rosario/Documents/Projects/clorofillo/start_io.sh &")
+    await update.message.reply_text("Starting io_app.py...")
+    os.system(f"{SCRIPTS_DIR / 'start_io.sh'} &")
 
 #DEBUG
 @authorized_only
 async def shutdown(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("⚠️ Raspberry Pi is shutting down...")
+    await update.message.reply_text("Raspberry Pi is shutting down...")
     os.system("sudo shutdown now")
 
 
@@ -216,8 +220,8 @@ async def clean_sighting_photos(update: Update, context: ContextTypes.DEFAULT_TY
                             print(f"Failed to remove {file_path}: {e}")
 
         await update.message.reply_text(
-            f"✅ Deleted {count} sighting photos from the database.\n"
-            f"🗑️ Removed {removed_files} files from the file system."
+            f"Deleted {count} sighting photos from the database.\n"
+            f"Removed {removed_files} files from the file system."
         )
 
     except Exception as e:
@@ -244,7 +248,7 @@ async def clean_timelapse_photos(update: Update, context: ContextTypes.DEFAULT_T
                                 print(f"Failed to remove {file_path}: {e}")
 
         await update.message.reply_text(
-            f"✅ Removed {removed_files} timelapse photos from the file system."
+            f"Removed {removed_files} timelapse photos from the file system."
         )
 
     except Exception as e:
@@ -276,8 +280,8 @@ async def get_timelapse(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             output_path,
             filter_type,
         )
-        await update.message.reply_text("🎬 Your timelapse is ready!")
-        await update.message.reply_video(video=open(output_path, "rb"), caption="🌱 Plant growth in timelapse")
+        await update.message.reply_text("Your timelapse is ready!")
+        await update.message.reply_video(video=open(output_path, "rb"), caption="Plant growth in timelapse")
     except ValueError as ve:
         await update.message.reply_text(f"Error: {str(ve)}")
     except Exception as e:
@@ -296,15 +300,15 @@ async def get_configuration(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         response = pot.configuration
         freqs = [str(elem) for elem in response.shot_freq]
         await update.message.reply_text(
-            f"""🌿 Configuration for pot #{pot_id} 🌿
+            f"""Configuration for pot #{pot_id}
 
-🔧 Watering mode: `{response.watering_mode}`
-💧 Humidity threshold: `{response.threshold}%`
-📸 Timelapse times: `{', '.join(freqs)}`
-🐛 Sighting detection frequency: `{response.sighting_freq} shots/minute`
-📍 Position: `{response.position}°`
-🌱 Plant: `{response.plant}`
-🌿 Size: `{response.size} L`
+Watering mode: `{response.watering_mode}`
+Humidity threshold: `{response.threshold}%`
+Timelapse times: `{', '.join(freqs)}`
+Sighting detection frequency: `{response.sighting_freq} shots/minute`
+Position: `{response.position}°`
+Plant: `{response.plant}`
+Size: `{response.size} L`
 """,
             parse_mode="Markdown"
         )
@@ -324,8 +328,8 @@ async def get_sighting_diary(update: Update, context: ContextTypes.DEFAULT_TYPE)
         if pot_orm is None:
             raise ValueError("ID doesn't exist")
         path = pot_service.sighting_diary(pot_id)
-        await update.message.reply_text("🎬 Your sighting diary is ready!")
-        await update.message.reply_document(document=open(path, "rb"), caption="🌱 Sighting diary")
+        await update.message.reply_text("Your sighting diary is ready!")
+        await update.message.reply_document(document=open(path, "rb"), caption="Sighting diary")
     except ValueError as ve:
         await update.message.reply_text(f"Error: {str(ve)}")
     except Exception as e:
@@ -344,7 +348,7 @@ async def set_threshold(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conf = Configuration.from_orm(pot_orm.configuration)
         conf.threshold = threshold
         conf_repository.update(conf.id, conf.to_orm())
-        await update.message.reply_text(f"✅ Threshold of pot #{pot_id} set to {threshold}%")
+        await update.message.reply_text(f"Threshold of pot #{pot_id} set to {threshold}%")
     except Exception as e:
         await update.message.reply_text(f"Error: {e}")
 
@@ -362,7 +366,7 @@ async def set_watering_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conf = Configuration.from_orm(pot_orm.configuration)
         conf.watering_mode = watering_mode
         conf_repository.update(conf.id, conf.to_orm())
-        await update.message.reply_text(f"✅ Watering mode of pot #{pot_id} set to {watering_mode}")
+        await update.message.reply_text(f"Watering mode of pot #{pot_id} set to {watering_mode}")
     except Exception as e:
         await update.message.reply_text(f"Error: {e}")
 
@@ -380,7 +384,7 @@ async def set_shot_freq(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conf = Configuration.from_orm(pot_orm.configuration)
         conf.shot_freq = shot_freq
         conf_repository.update(conf.id, conf.to_orm())
-        await update.message.reply_text(f"✅ Shot frequency of pot #{pot_id} updated: {', '.join(shot_freq)}")
+        await update.message.reply_text(f"Shot frequency of pot #{pot_id} updated: {', '.join(shot_freq)}")
     except Exception as e:
         await update.message.reply_text(f"Error: {e}")
 
@@ -398,7 +402,7 @@ async def set_sighting_freq(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conf = Configuration.from_orm(pot_orm.configuration)
         conf.sighting_freq = sighting_freq
         conf_repository.update(conf.id, conf.to_orm())
-        await update.message.reply_text(f"✅ Sighting detection frequency of pot #{pot_id} set to {sighting_freq} shots/min")
+        await update.message.reply_text(f"Sighting detection frequency of pot #{pot_id} set to {sighting_freq} shots/min")
     except Exception as e:
         await update.message.reply_text(f"Error: {e}")
 
@@ -416,7 +420,7 @@ async def set_position(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conf = Configuration.from_orm(pot_orm.configuration)
         conf.position = position
         conf_repository.update(conf.id, conf.to_orm())
-        await update.message.reply_text(f"✅ Position of pot #{pot_id} set to {position}°")
+        await update.message.reply_text(f"Position of pot #{pot_id} set to {position}°")
     except Exception as e:
         await update.message.reply_text(f"Error: {e}")
 
@@ -434,7 +438,7 @@ async def set_size(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conf = Configuration.from_orm(pot_orm.configuration)
         conf.size = size
         conf_repository.update(conf.id, conf.to_orm())
-        await update.message.reply_text(f"✅ Size of pot #{pot_id} set to {size} L")
+        await update.message.reply_text(f"Size of pot #{pot_id} set to {size} L")
     except Exception as e:
         await update.message.reply_text(f"Error: {e}")
 
@@ -452,7 +456,7 @@ async def set_plant(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conf = Configuration.from_orm(pot_orm.configuration)
         conf.plant = plant
         conf_repository.update(conf.id, conf.to_orm())
-        await update.message.reply_text(f"✅ Plant of pot #{pot_id} set to {plant}")
+        await update.message.reply_text(f"Plant of pot #{pot_id} set to {plant}")
     except Exception as e:
         await update.message.reply_text(f"Error: {e}")
 
@@ -606,7 +610,7 @@ async def identify_invertebrate(update: Update, context: ContextTypes.DEFAULT_TY
     msg = update.message
     if not (msg and msg.text and msg.text.strip().startswith("/identifyinvertebrate") and 
             msg.reply_to_message and msg.reply_to_message.photo):
-        await update.message.reply_text("⚠️ Use /identifyinvertebrate only as a reply to a photo.")
+        await update.message.reply_text("Use /identifyinvertebrate only as a reply to a photo.")
         return
 
     try:
@@ -624,12 +628,12 @@ async def identify_invertebrate(update: Update, context: ContextTypes.DEFAULT_TY
             for invertebrate in invertebrates:
                 invertebrate_list += invertebrate
                 invertebrate_list += "\n"
-            await update.message.reply_text(f"🔍 Possible animals:\n{invertebrate_list}")
+            await update.message.reply_text(f"Possible animals:\n{invertebrate_list}")
         else:
-            await update.message.reply_text("❓ No animals identified with sufficient confidence.")
+            await update.message.reply_text("No animals identified with sufficient confidence.")
 
     except Exception as ex:
-        await update.message.reply_text(f"⚠️ Error identifying animals: {ex}")
+        await update.message.reply_text(f"Error identifying animals: {ex}")
 
 
 async def post_init(application: Application):

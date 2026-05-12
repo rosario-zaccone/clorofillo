@@ -2,13 +2,14 @@
 
 set -e
 
-cd /home/rosario/Documents/Projects/clorofillo
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$PROJECT_DIR"
 
 # Wait for internet connection
 echo "Checking internet connection..."
 for i in {1..30}; do
     if ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1; then
-        echo "✓ Internet available!"
+        echo "Internet available!"
         break
     fi
     echo "Attempt $i/30..."

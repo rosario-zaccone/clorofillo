@@ -4,30 +4,6 @@ IoT system for automated watering, timelapse recording, and invertebrate detecti
 
 Project developed for University of Bologna Making course
 
-## Results
-
-The full report is available in [docs/report.pdf](docs/report.pdf).
-
-### Autocalibration
-
-![Autocalibration](docs/assets/results/autocalibrazione.png)
-
-### Notifications
-
-![Notifications](docs/assets/results/notifiche.png)
-
-### Timelapse
-
-![Timelapse](docs/assets/results/timelapse.png)
-
-### Insect Detection
-
-![Insect detection](docs/assets/results/rilevazione-insetti.png)
-
-![Sighting diary](docs/assets/results/diario-avvistamenti.png)
-
-![Insect identification](docs/assets/results/identificazione-insetto.png)
-
 ## Installation
 
 ### Prerequisites
@@ -78,7 +54,7 @@ git checkout develop
    - Water level sensor → MCP3008 (analog channel 3)
    - Camera → Raspberry Pi camera port
 
-**⚠️ Important**: Double-check all connections against `docs/report.pdf` before powering on!
+**Important**: Double-check all connections against `docs/report.pdf` before powering on.
 
 #### 1. Get Telegram Bot Token
 
@@ -139,10 +115,10 @@ This creates:
 
  ```bash
 # Make setup script executable
-chmod +x setup_services.sh
+chmod +x scripts/setup_services.sh
 
 # Run setup (creates and enables services)
-sudo bash setup_services.sh
+sudo bash scripts/setup_services.sh
  ```
 
 This script:
@@ -258,10 +234,12 @@ clorofillo/
 ├── .env.example                  # Template
 ├── docs/
 │   └── report.pdf                # Electrical schematic and hardware documentation
-├── start.sh                       # Main startup script
-├── start_io.sh                    # Start hardware + photos
-├── kill_io.sh                     # Stop hardware
-├── setup_services.sh              # Systemd setup script
+├── scripts/
+│   ├── start.sh                   # Main startup script
+│   ├── start_io.sh                # Start hardware + photos
+│   ├── kill_io.sh                 # Stop hardware
+│   ├── stop.sh                   # Stop bot and IO processes
+│   └── setup_services.sh          # Systemd setup script
 ├── pyproject.toml                 # Dependencies
 ├── data/
 │   ├── db.sqlite                  # Database (auto-created)
@@ -314,3 +292,27 @@ For issues or questions, check:
 - Service logs: `journalctl -u clorofillo.service -f`
 - Redis communication: `redis-cli ping`
 - Active processes: `ps aux | grep python`
+
+## Results
+
+The full report is available in [docs/report.pdf](docs/report.pdf).
+
+### Autocalibration
+
+![Autocalibration](docs/assets/results/autocalibrazione.png)
+
+### Notifications
+
+![Notifications](docs/assets/results/notifiche.png)
+
+### Timelapse
+
+![Timelapse](docs/assets/results/timelapse.png)
+
+### Insect Detection
+
+![Insect detection](docs/assets/results/rilevazione-insetti.png)
+
+![Sighting diary](docs/assets/results/diario-avvistamenti.png)
+
+![Insect identification](docs/assets/results/identificazione-insetto.png)

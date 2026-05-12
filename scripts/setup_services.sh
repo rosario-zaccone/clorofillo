@@ -1,26 +1,26 @@
 #!/bin/bash
 
-# Get the directory where the script is executed
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the project root directory
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 USER="$(whoami)"
 
-echo "🔧 Setting up systemd services for Clorofillo..."
-echo "📁 Project directory: $PROJECT_DIR"
-echo "👤 User: $USER"
+echo "Setting up systemd services for Clorofillo..."
+echo "Project directory: $PROJECT_DIR"
+echo "User: $USER"
 echo ""
 
 # Verify project structure
-if [ ! -f "$PROJECT_DIR/start.sh" ]; then
-    echo "❌ Error: start.sh not found in $PROJECT_DIR"
+if [ ! -f "$PROJECT_DIR/scripts/start.sh" ]; then
+    echo "Error: scripts/start.sh not found in $PROJECT_DIR"
     echo "Make sure you run this script from the Clorofillo project root directory"
     exit 1
 fi
 
-echo "✅ Project directory verified"
+echo "Project directory verified"
 echo ""
 
 # Create clorofillo.service
-echo "📝 Creating clorofillo.service..."
+echo "Creating clorofillo.service..."
 sudo tee /etc/systemd/system/clorofillo.service > /dev/null <<EOF
 [Unit]
 Description=Clorofillo App
@@ -31,7 +31,7 @@ Wants=network-online.target
 Type=simple
 User=$USER
 WorkingDirectory=$PROJECT_DIR
-ExecStart=$PROJECT_DIR/start.sh
+ExecStart=$PROJECT_DIR/scripts/start.sh
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -43,16 +43,16 @@ WantedBy=multi-user.target
 EOF
 
 if [ $? -eq 0 ]; then
-    echo "✅ clorofillo.service created at /etc/systemd/system/clorofillo.service"
+    echo "clorofillo.service created at /etc/systemd/system/clorofillo.service"
 else
-    echo "❌ Failed to create clorofillo.service"
+    echo "Failed to create clorofillo.service"
     exit 1
 fi
 
 echo ""
 
 # Create pigpiod.service
-echo "📝 Creating pigpiod.service..."
+echo "Creating pigpiod.service..."
 sudo tee /lib/systemd/system/pigpiod.service > /dev/null <<EOF
 [Unit]
 Description=Daemon required to control GPIO pins via pigpio
@@ -67,43 +67,43 @@ WantedBy=multi-user.target
 EOF
 
 if [ $? -eq 0 ]; then
-    echo "✅ pigpiod.service created at /lib/systemd/system/pigpiod.service"
+    echo "pigpiod.service created at /lib/systemd/system/pigpiod.service"
 else
-    echo "❌ Failed to create pigpiod.service"
+    echo "Failed to create pigpiod.service"
     exit 1
 fi
 
 echo ""
 
 # Reload systemd daemon
-echo "🔄 Reloading systemd daemon..."
+echo "Reloading systemd daemon..."
 sudo systemctl daemon-reload
 
 if [ $? -eq 0 ]; then
-    echo "✅ Systemd daemon reloaded"
+    echo "Systemd daemon reloaded"
 else
-    echo "❌ Failed to reload systemd daemon"
+    echo "Failed to reload systemd daemon"
     exit 1
 fi
 
 echo ""
 
 # Enable services for auto-start
-echo "🚀 Enabling services for auto-start on boot..."
+echo "Enabling services for auto-start on boot..."
 sudo systemctl enable pigpiod.service
 sudo systemctl enable clorofillo.service
 
 if [ $? -eq 0 ]; then
-    echo "✅ Services enabled for auto-start"
+    echo "Services enabled for auto-start"
 else
-    echo "❌ Failed to enable services"
+    echo "Failed to enable services"
     exit 1
 fi
 
 echo ""
 
 # Show service status
-echo "📊 Current service status:"
+echo "Current service status:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 sudo systemctl status pigpiod.service --no-pager
 echo ""
@@ -116,16 +116,16 @@ read -p "Do you want to start the services now? (y/n) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo ""
-    echo "🚀 Starting pigpiod.service..."
+    echo "Starting pigpiod.service..."
     sudo systemctl start pigpiod.service
     
-    echo "🚀 Starting clorofillo.service..."
+    echo "Starting clorofillo.service..."
     sudo systemctl start clorofillo.service
     
     echo ""
-    echo "✅ Services started!"
+    echo "Services started!"
     echo ""
-    echo "📊 Updated service status:"
+    echo "Updated service status:"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     sudo systemctl status pigpiod.service --no-pager
     echo ""
@@ -134,9 +134,9 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
 fi
 
 echo ""
-echo "✨ Setup complete!"
+echo "Setup complete!"
 echo ""
-echo "🔍 Useful debugging commands:"
+echo "Useful debugging commands:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  View service status:"
 echo "    sudo systemctl status clorofillo.service"
